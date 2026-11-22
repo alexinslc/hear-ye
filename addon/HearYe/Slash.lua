@@ -128,7 +128,7 @@ ns.Setup = Setup
 local window
 local checks = {}
 
-local ICON = "Interface\\Icons\\INV_Misc_Note_01"
+local ICON = "Interface\\AddOns\\HearYe\\Textures\\Icon"
 
 local function NewWindow(name, title, width, height)
 	local ok, frame = pcall(CreateFrame, "Frame", name, UIParent, "PortraitFrameTemplate")
@@ -150,10 +150,12 @@ local function NewWindow(name, title, width, height)
 	return frame
 end
 
+-- anchor is the element above. Under another checkbox's description, the
+-- box steps back so the two checkboxes line up.
 local function AddCheck(parent, anchor, label, detail, get, set)
 	local check = CreateFrame("CheckButton", nil, parent, "UICheckButtonTemplate")
 	check:SetSize(26, 26)
-	check:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, -10)
+	check:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", anchor.isCheckDetail and -30 or 0, -10)
 	local text = check:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
 	text:SetPoint("LEFT", check, "RIGHT", 4, 1)
 	text:SetText(label)
@@ -162,6 +164,7 @@ local function AddCheck(parent, anchor, label, detail, get, set)
 	sub:SetWidth(320)
 	sub:SetJustifyH("LEFT")
 	sub:SetText(detail)
+	sub.isCheckDetail = true
 	check:SetScript("OnClick", function(self)
 		set(self:GetChecked())
 		if SOUNDKIT then
@@ -275,7 +278,7 @@ local function Build()
 	intro:SetPoint("TOPLEFT", 24, -72)
 	intro:SetWidth(372)
 	intro:SetJustifyH("LEFT")
-	intro:SetText("Hear Ye puts nearby chat, your party, your guild and each whisper in its own place. The list on the left shows where new messages are waiting.")
+	intro:SetText("Hear Ye puts Say, your party, your guild and each whisper in its own place. The list on the left shows where new messages are waiting.")
 
 	local last = AddCheck(window, intro, "Use Hear Ye as my chat window",
 		"Hides the default chat window. It comes back if you turn this off or hide Hear Ye.",
@@ -350,7 +353,7 @@ local function Build()
 	window.refreshers = { soundMenu.refresh }
 
 	AddCheck(window, soundMenu.frame, "Hide friends' real names",
-		"Shows Battle.net friends by BattleTag, and leaves out Battle.net notices that only come with real names.",
+		"Shows Battle.net friends by the character they're playing or their BattleTag, and leaves out notices that only come with real names.",
 		function() return ns.db.hideRealNames end,
 		function(on)
 			ns.db.hideRealNames = on and true or false
