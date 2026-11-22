@@ -150,7 +150,7 @@ local function UnitFramesFloor(left, right, bottom)
 end
 
 -- Shortest the "under my character" layout gets when the gap is tight.
-local UNDER_MIN_HEIGHT = 150
+local UNDER_MIN_HEIGHT = 120
 
 local function ApplyPosition()
 	local width, height = ns.db.width, ns.db.height
@@ -438,6 +438,7 @@ local function OpenMenu(owner)
 			end
 			local function setLayout(layout)
 				ns.db.layout = layout
+				Shell:ApplyStyle()
 				Shell:ResetPosition()
 			end
 			if root.CreateRadio then
@@ -552,6 +553,28 @@ function Shell:Create()
 	end)
 	settingsButton:SetScript("OnLeave", GameTooltip_Hide)
 
+	-- The slim title bar, for Under my character: a thin bronze-bordered
+	-- frame with the title, gear, list button and close button in a strip,
+	-- in place of the portrait window's tall title bar.
+	self.header = header
+	if self.styled then
+		local slim = CreateFrame("Frame", nil, frame, "BackdropTemplate")
+		slim:SetAllPoints()
+		slim:SetFrameLevel(frame:GetFrameLevel())
+		ns.ApplyBackdrop(slim, ns.db.opacity)
+		slim:Hide()
+		self.slimBorder = slim
+		self.slimTitle = header:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+		self.slimTitle:SetText("Hear Ye")
+		self.slimTitle:Hide()
+		local close = frame.CloseButton
+		self.closePoints = {}
+		for i = 1, close:GetNumPoints() do
+			self.closePoints[i] = { close:GetPoint(i) }
+		end
+		self.closeSize = { close:GetSize() }
+	end
+
 	-- The list starts below the portrait, as in Fireside Tales; the
 	-- conversation pane uses the full height beside it.
 	sidebar = ns.NewInset(frame)
@@ -580,7 +603,7 @@ function Shell:Create()
 	self.paneInset = paneInset
 	self.sidebar = sidebar
 	self:CreateListToggle()
-	self:ApplySidebar()
+	self:ApplyStyle()
 	-- Conversation header: who or where, and a line of context.
 	local paneHeader = CreateFrame("Frame", nil, paneInset)
 	paneHeader:SetPoint("TOPLEFT", 8, -5)
@@ -676,6 +699,7 @@ local function Pieces()
 	add(art, settingsButton)
 	add(art, Shell.grip)
 	add(art, Shell.listToggle)
+	add(art, Shell.slimTitle)
 	add(art, Shell.chrome.rule)
 	for _, inset in ipairs(Shell.chrome.insets) do
 		add(art, inset.NineSlice)
@@ -694,9 +718,10 @@ local function PaintChrome(amount)
 	for _, piece in ipairs(backgrounds) do
 		piece:SetAlpha(amount * opacity)
 	end
-	if not Shell.styled then
-		frame:SetBackdropColor(0.06, 0.05, 0.04, amount * opacity)
-		frame:SetBackdropBorderColor(BRONZE[1], BRONZE[2], BRONZE[3], amount)
+	local plain = (not Shell.styled) and frame or (Shell:IsSlim() and Shell.slimBorder)
+	if plain then
+		plain:SetBackdropColor(0.06, 0.05, 0.04, amount * opacity)
+		plain:SetBackdropBorderColor(BRONZE[1], BRONZE[2], BRONZE[3], amount)
 	end
 	for _, inset in ipairs(Shell.chrome.insets) do
 		if not inset.Bg and inset.SetBackdropColor then
@@ -780,6 +805,7 @@ local function OnFadeUpdate(_, elapsed)
 end
 
 Shell.OnFadeUpdate = OnFadeUpdate
+Shell.PaintChrome = PaintChrome
 
 function Shell:DescribeChrome()
 	local insets = {}
@@ -831,13 +857,77 @@ function Shell:CreateListToggle()
 	self.listToggle = toggle
 end
 
+-- Under my character uses the slim title bar; Beside keeps the full window.
+function Shell:IsSlim()
+	return self.styled and ns.db.layout == "under"
+end
+
+-- Where the conversation pane and the list start, below the title bar.
+function Shell:PaneTop()
+	if self:IsSlim() then
+		return -24
+	end
+	return self.styled and -28 or -HEADER_HEIGHT - 4
+end
+
+function Shell:ListTop()
+	if self:IsSlim() then
+		return -24
+	end
+	return self.styled and -60 or -HEADER_HEIGHT - 4
+end
+
+function Shell:ApplyStyle()
+	local slim = self:IsSlim()
+	if self.styled then
+		for _, piece in ipairs({ frame.NineSlice, frame.PortraitContainer or frame.portrait, frame.TitleContainer, frame.Bg, frame.TopTileStreaks }) do
+			if piece and piece.SetShown then
+				piece:SetShown(not slim)
+			end
+		end
+		self.slimBorder:SetShown(slim)
+		self.slimTitle:SetShown(slim)
+		local close = frame.CloseButton
+		close:ClearAllPoints()
+		if slim then
+			close:SetSize(22, 22)
+			close:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 0, 0)
+		else
+			close:SetSize(self.closeSize[1], self.closeSize[2])
+			for _, p in ipairs(self.closePoints) do
+				close:SetPoint(p[1], p[2], p[3], p[4], p[5])
+			end
+		end
+	end
+	local header = self.header
+	header:ClearAllPoints()
+	if slim then
+		header:SetPoint("TOPLEFT", 4, -3)
+		header:SetPoint("TOPRIGHT", -22, -3)
+		header:SetHeight(18)
+		self.slimTitle:ClearAllPoints()
+		self.slimTitle:SetPoint("LEFT", header, "LEFT", 46, 0)
+	else
+		header:SetPoint("TOPLEFT", 56, -1) -- the gear sits over its left end
+		header:SetPoint("TOPRIGHT", -46, -1)
+		header:SetHeight(HEADER_HEIGHT)
+	end
+	sidebar:ClearAllPoints()
+	sidebar:SetPoint("TOPLEFT", 8, self:ListTop())
+	sidebar:SetPoint("BOTTOMLEFT", 8, 6)
+	self:ApplySidebar()
+	if shownAmount then
+		Shell.PaintChrome(shownAmount)
+	end
+end
+
 -- "Hidden" keeps the list as a narrow strip: each conversation's coloured
 -- square and its unread pill, with the name in its tooltip. The pane gets
 -- the room the names took.
 function Shell:ApplySidebar()
 	local compact = ns.db.sidebarHidden
 	local toggle = self.listToggle
-	local top = self.styled and -28 or -HEADER_HEIGHT - 4
+	local top = self:PaneTop()
 	sidebar:SetWidth(compact and COMPACT_WIDTH or SIDEBAR_WIDTH)
 	inputArea:ClearAllPoints()
 	inputArea:SetPoint("BOTTOMLEFT", sidebar, "BOTTOMRIGHT", 4, 0)
@@ -849,11 +939,17 @@ function Shell:ApplySidebar()
 	-- The button stays in one spot beside the portrait, so a second click
 	-- in the same place switches back.
 	toggle:ClearAllPoints()
-	toggle:SetPoint("TOPLEFT", frame, "TOPLEFT", self.styled and 58 or 6, self.styled and -31 or -HEADER_HEIGHT)
+	if self:IsSlim() then
+		toggle:SetSize(18, 18)
+		toggle:SetPoint("TOPLEFT", frame, "TOPLEFT", 24, -3)
+	else
+		toggle:SetSize(24, 24)
+		toggle:SetPoint("TOPLEFT", frame, "TOPLEFT", self.styled and 58 or 6, self.styled and -31 or -HEADER_HEIGHT)
+	end
 	local arrow = compact and "NextPage" or "PrevPage"
 	toggle:SetNormalTexture("Interface\\Buttons\\UI-SpellbookIcon-" .. arrow .. "-Up")
 	toggle:SetPushedTexture("Interface\\Buttons\\UI-SpellbookIcon-" .. arrow .. "-Down")
-	toggle.label:SetText(compact and "" or "Conversations")
+	toggle.label:SetText((compact or self:IsSlim()) and "" or "Conversations")
 end
 
 function Shell:IsActive()

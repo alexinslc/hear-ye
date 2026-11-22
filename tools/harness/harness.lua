@@ -452,6 +452,13 @@ section("Placement", function()
 	S.runTimers()
 	check("another bar makes it shorter", S.ns.Shell.frame:GetHeight() == 300 - 6 - 136, S.ns.Shell.frame:GetHeight())
 
+	local shell = S.ns.Shell
+	check("under my character uses the slim title bar", shell:IsSlim() and shell.slimBorder:IsShown() and not shell.frame.NineSlice:IsShown())
+	check("the slim bar starts the list near the top", shell:ListTop() == -24)
+	S.ns.db.layout = "beside"
+	shell:ApplyStyle()
+	check("beside my character brings back the full title bar", not shell.slimBorder:IsShown() and shell.frame.NineSlice:IsShown() and shell:ListTop() == -60)
+
 	S = Boot({ schema = 3, position = { "BOTTOMLEFT", "BOTTOMLEFT", 40, 200 }, width = 700, height = 380 })
 	S.login()
 	check("a window resized before keeps its size", S.ns.db.sized == true and S.ns.Shell.frame:GetWidth() == 700)
