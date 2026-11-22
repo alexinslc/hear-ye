@@ -520,6 +520,25 @@ section("Reloading keeps history", function()
 	check("a second save keeps it", hasLine(conv, "want to group"))
 end)
 
+section("A reload keeps the most recent whisper first", function()
+	local S = Boot(nil)
+	S.login()
+	S.now = 1800000000
+	S.chatEvent("CHAT_MSG_WHISPER", "first", "Older Friend-Forever", { guid = "Player-1-00000005" })
+	S.now = 1800000100
+	S.chatEvent("CHAT_MSG_WHISPER", "second", "Newer Friend-Forever", { guid = "Player-1-00000006" })
+	local db = S.logout()
+	for attempt = 1, 5 do
+		local R = Boot(db)
+		R.login()
+		local whispers = {}
+		for _, c in ipairs(R.ns.Conversations:Sorted()) do
+			if c.chatType == "WHISPER" then whispers[#whispers + 1] = c.label end
+		end
+		check("reload " .. attempt .. " lists the newer whisper first", whispers[1] == "Newer Friend", table.concat(whispers, ", "))
+	end
+end)
+
 section("A broken load doesn't wipe history", function()
 	-- Leave out Shell.lua so login fails partway, like the bug that once
 	-- saved an empty history over the real one.

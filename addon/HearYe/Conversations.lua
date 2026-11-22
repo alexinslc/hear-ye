@@ -658,9 +658,11 @@ function Conversations:Restore()
 		return
 	end
 	local restored = 0
+	local inOrder = {}
 	for key, s in pairs(saved.convs) do
 		if type(key) == "string" and type(s) == "table" and type(s.lines) == "table" then
 			local conv = Create(key, {})
+			inOrder[#inOrder + 1] = conv
 			for _, field in ipairs(SAVED_FIELDS) do
 				conv[field] = s[field]
 			end
@@ -683,6 +685,16 @@ function Conversations:Restore()
 			end
 			restored = restored + 1
 		end
+	end
+	-- Saved rows come back in no particular order. Touch them oldest first,
+	-- by their last message, so the most recent conversation still sorts first.
+	local function LastTime(conv)
+		local last = conv.lines[#conv.lines]
+		return type(last) == "table" and tonumber(last.t) or 0
+	end
+	table.sort(inOrder, function(a, b) return LastTime(a) < LastTime(b) end)
+	for _, conv in ipairs(inOrder) do
+		Touch(conv)
 	end
 	if saved.selected and byKey[saved.selected] then
 		self.selectedKey = saved.selected
