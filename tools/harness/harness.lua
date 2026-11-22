@@ -427,6 +427,31 @@ section("Placement", function()
 	local pw = S.ns.Shell.frame:GetWidth()
 	check("it stops short of the player frame", pw <= 380 - 6 - 16 and pw >= 300, pw)
 
+	-- Under my character: wide, from the top of the bars to the bottom of
+	-- the player frame. Turning on another bar makes it shorter.
+	local function box(l, r, b, t)
+		return {
+			IsVisible = function() return true end,
+			GetEffectiveScale = function() return 1 end,
+			GetLeft = function() return l end, GetRight = function() return r end,
+			GetBottom = function() return b end, GetTop = function() return t end,
+		}
+	end
+	local tallPlayer = box(380, 510, 300, 370)
+	local bar = box(300, 900, 60, 100)
+	S = Boot({ layout = "under" }, { stubs = { PlayerFrame = tallPlayer, MultiBarBottomLeft = bar } })
+	S.env.UIParent:SetSize(2560 / 1440 * 768, 768)
+	S.login()
+	S.fire("EDIT_MODE_LAYOUTS_UPDATED")
+	S.runTimers()
+	local uw, uh = S.ns.Shell.frame:GetSize()
+	check("under my character is wide", uw == math.floor(2560 / 1440 * 768 * 0.5), uw)
+	check("it fills the gap from the bars to the player frame", uh == 300 - 6 - 106, uh)
+	bar.GetTop = function() return 130 end -- a second bar row turned on
+	S.fire("UPDATE_BONUS_ACTIONBAR")
+	S.runTimers()
+	check("another bar makes it shorter", S.ns.Shell.frame:GetHeight() == 300 - 6 - 136, S.ns.Shell.frame:GetHeight())
+
 	S = Boot({ schema = 3, position = { "BOTTOMLEFT", "BOTTOMLEFT", 40, 200 }, width = 700, height = 380 })
 	S.login()
 	check("a window resized before keeps its size", S.ns.db.sized == true and S.ns.Shell.frame:GetWidth() == 700)

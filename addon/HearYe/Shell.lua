@@ -136,6 +136,22 @@ local function ClearOfUnitFrames(left, bottom, width, height)
 	return width, height
 end
 
+-- Under your character: the lowest unit frame bottom above the window, so
+-- the window can grow up to it and no further.
+local function UnitFramesFloor(left, right, bottom)
+	local floor
+	for _, name in ipairs(UNIT_FRAMES) do
+		local l, r, b = Bounds(_G[name])
+		if l and r > left and l < right and b > bottom then
+			floor = math.min(floor or b, b)
+		end
+	end
+	return floor
+end
+
+-- Shortest the "under my character" layout gets when the gap is tight.
+local UNDER_MIN_HEIGHT = 150
+
 local function ApplyPosition()
 	local width, height = ns.db.width, ns.db.height
 	local pos = ns.db.position
@@ -145,12 +161,28 @@ local function ApplyPosition()
 		frame:SetPoint(pos[1], UIParent, pos[2], pos[3], pos[4])
 		return
 	end
-	-- Bottom left, like the default chat, just above the action bars and
-	-- beside (not under) your character's frame.
-	if not ns.db.sized then
-		width, height = AutoSize()
-	end
 	local margin = math.floor(Clamp(UIParent:GetWidth() * 0.012, 10, 32))
+	local autoWidth, autoHeight = AutoSize()
+	if ns.db.layout == "under" then
+		-- Wide and short: across the space above the action bars, up to the
+		-- bottom of your character's frame.
+		if not ns.db.sized then
+			width = math.floor(Clamp(UIParent:GetWidth() * 0.5, 440, 1000))
+		end
+		local bottom = ClearOfBars(margin, margin + width, margin)
+		if not ns.db.sized then
+			local floor = UnitFramesFloor(margin, margin + width, bottom)
+			height = floor and math.max(UNDER_MIN_HEIGHT, floor - 6 - bottom) or autoHeight
+		end
+		frame:SetSize(math.floor(width), math.floor(height))
+		frame:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", margin, bottom)
+		return
+	end
+	-- Beside your character (the default): bottom left like the default chat,
+	-- just above the action bars, stopping short of your character's frame.
+	if not ns.db.sized then
+		width, height = autoWidth, autoHeight
+	end
 	local bottom = ClearOfBars(margin, margin + width, margin)
 	if not ns.db.sized then
 		width, height = ClearOfUnitFrames(margin, bottom, width, height)
@@ -390,7 +422,23 @@ local function OpenMenu(owner)
 				ns.ChatReplace:SetEnabled(not ns.db.replaceChat)
 			end)
 			root:CreateButton("Settings...", function() ns.Setup:Show() end)
-			root:CreateButton("Reset position", function() Shell:ResetPosition() end)
+			-- Choosing a layout hands placement back to Hear Ye, which keeps it
+			-- fitted as bars and frames change.
+			root:CreateTitle("Place it")
+			local function isLayout(layout)
+				return not ns.db.position and not ns.db.sized and (ns.db.layout or "beside") == layout
+			end
+			local function setLayout(layout)
+				ns.db.layout = layout
+				Shell:ResetPosition()
+			end
+			if root.CreateRadio then
+				root:CreateRadio("Beside my character", isLayout, setLayout, "beside")
+				root:CreateRadio("Under my character", isLayout, setLayout, "under")
+			else
+				root:CreateButton("Beside my character", function() setLayout("beside") end)
+				root:CreateButton("Under my character", function() setLayout("under") end)
+			end
 		end)
 	else
 		ns.Setup:Show()

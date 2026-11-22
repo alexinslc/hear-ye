@@ -22,6 +22,7 @@ local defaults = {
 	groupSound = "none", -- a sound for new party, raid and guild messages
 	sidebarHidden = false, -- the conversation list, as a compact strip
 	sized = false, -- true once you've resized the window yourself
+	layout = "beside", -- automatic placement: "beside" or "under" your character
 }
 
 -- Saved history is just enough to carry over a reload or a quick relog:
@@ -94,6 +95,9 @@ local function ApplyDefaults(db)
 	db.height = Clamp(db.height, 200, 800, defaults.height)
 	db.fontSize = Clamp(db.fontSize, 0, 24, 0)
 	db.opacity = Clamp(db.opacity, 0, 1, defaults.opacity)
+	if db.layout ~= "beside" and db.layout ~= "under" then
+		db.layout = defaults.layout
+	end
 
 	db.characters = type(db.characters) == "table" and db.characters or {}
 	-- Sidebar sections you've closed, by key ("chat", "whispers").
