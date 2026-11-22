@@ -2,7 +2,7 @@
 
 Everything the project form asks for. Paste the description in Markdown mode, and use [art/logo.png](../art/logo.png) as the logo.
 
-Before 1.0, drop the early-testing line. Add in-game screenshots to the gallery once there are some without other players' names in them.
+Before 1.0, drop the early-testing line. The logo and banner are placeholders until the art in [artwork-brief.md](artwork-brief.md) arrives, and the screenshots listed there go in the gallery and description.
 
 | Field | Value |
 | --- | --- |
