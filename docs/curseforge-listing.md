@@ -29,10 +29,11 @@ Before 1.0, drop the early-testing line. The screenshots listed in [artwork-brie
 
 - **One row per conversation:** Say, Party, Raid, Guild, each channel you've joined, and each person who whispers you. A red pill shows what you haven't read.
 - **The game's own chat box:** press Enter and type as usual. Slash commands, /r, Tab, history and Shift-clicking links all work the way they always have.
-- **Click a row to talk there.** Typing /p or /w Name moves the window to that row too.
+- **Click a row to read it,** then press Enter to talk there. Clicking never stops you walking. Typing /p or /w Name moves the window to that row too.
 - **Unsent text stays put:** switch rows mid-sentence and your text waits in the row you left.
 - **Survives a reload:** whispers, party, raid and guild keep their last 50 lines for a day, so a reload or quick relog doesn't wipe them. Public channels start fresh, like the default chat.
 - **See-through:** set how solid the background is, and let it fade when the mouse is away, like the default chat.
+- **Battle.net friends by character or BattleTag:** friends show by the character they're playing, or their BattleTag, never their real name. You can turn this off in the settings.
 - **Compact list:** shrink the conversation list to short names and unread counts for more room to read.
 - **Fits your screen:** it sizes itself and sits just above your action bars, beside your character, at any resolution.
 

@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.3.0
+
+- Battle.net friends now show by the character they're playing, or their BattleTag, never their real name.
+- Added a Hide friends' real names setting, on by default.
+- Clicking a conversation no longer opens the chat box, so you keep moving.
+- The conversation list now scrolls with the mouse wheel when it doesn't fit.
+- Moved the gear button to the left end of the title bar.
+- Saved history is now just whispers, party, raid and guild: the last 50 lines, for a day.
+- Battle.net history saved by older versions is cleared.
+- Fixed Hear Ye lighting up when hovering a quest window or the map on top of it.
+- Fixed the conversation list staying scrolled after the window grows.
+
 ## 0.2.0
 
 - Added new artwork: logo, icon and banner.
