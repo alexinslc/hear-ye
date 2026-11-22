@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.0
+
+- The open conversation now fades out after 10 quiet seconds, like the default chat, and comes back when someone talks there or you hover or type.
+- The conversation list stays on screen, so unread counts are always visible.
+- Added a setting to turn the fade off.
+
 ## 0.3.1
 
 - Fixed a Battle.net friend's real name showing in the chat box while typing to them.

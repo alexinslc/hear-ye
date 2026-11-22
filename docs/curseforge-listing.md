@@ -35,6 +35,7 @@ Before 1.0, drop the early-testing line. The gallery has the five images in [doc
 - **Unsent text stays put:** switch rows mid-sentence and your text waits in the row you left.
 - **Survives a reload:** whispers, party, raid and guild keep their last 50 lines for a day, so a reload or quick relog doesn't wipe them. Public channels start fresh, like the default chat.
 - **See-through:** set how solid the background is, and let it fade when the mouse is away, like the default chat.
+- **Fades when quiet:** after 10 seconds with nothing said, the open conversation fades away and the list of conversations stays. It comes back when someone talks there, or when you hover or type.
 - **Battle.net friends by character or BattleTag:** friends show by the character they're playing, or their BattleTag, never their real name. You can turn this off in the settings.
 - **Compact list:** shrink the conversation list to short names and unread counts for more room to read.
 - **Fits your screen:** it sizes itself and sits just above your action bars, beside your character, at any resolution.
