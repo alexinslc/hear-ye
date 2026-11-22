@@ -499,7 +499,7 @@ function Shell:Create()
 	-- The title bar: drag handle and right-click menu. Stops short of the
 	-- gear and close button so they stay clickable.
 	local header = CreateFrame("Frame", nil, frame)
-	header:SetPoint("TOPLEFT", 56, -1)
+	header:SetPoint("TOPLEFT", 56, -1) -- the gear sits over its left end
 	header:SetPoint("TOPRIGHT", -46, -1)
 	header:SetHeight(HEADER_HEIGHT)
 	header:EnableMouse(true)
@@ -518,10 +518,11 @@ function Shell:Create()
 			OpenMenu(self)
 		end
 	end)
-	-- The gear sits in the title bar, left of the close button.
+	-- The gear sits at the left end of the title bar, beside the portrait.
+	-- Unit frames tend to sit over the right end, where it couldn't be clicked.
 	settingsButton = CreateFrame("Button", nil, frame)
 	settingsButton:SetSize(15, 15)
-	settingsButton:SetPoint("RIGHT", header, "RIGHT", 18, 0)
+	settingsButton:SetPoint("LEFT", header, "LEFT", 4, 0)
 	-- Above the window's border and title art, which sit high in the
 	-- template and would otherwise hide the gear and swallow its clicks.
 	local top = frame:GetFrameLevel()
