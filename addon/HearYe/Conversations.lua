@@ -19,6 +19,11 @@ local KEEPS_HISTORY = {
 	WHISPER = true, BN_WHISPER = true, PARTY = true, RAID = true,
 	INSTANCE_CHAT = true, GUILD = true, OFFICER = true,
 }
+-- Whether a conversation is one of your own (whisper, party, raid, guild).
+function Conversations.KeepsHistory(conv)
+	return KEEPS_HISTORY[conv.chatType] == true
+end
+
 local MAX_CHANNELS = (Constants and Constants.ChatFrameConstants and Constants.ChatFrameConstants.MaxChatChannels) or 20
 
 local byKey = {}

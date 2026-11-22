@@ -284,6 +284,10 @@ local function SetPill(pill, count, quiet)
 	pill:Show()
 end
 
+-- Everything in the window that shows text, apart from the messages. These
+-- fade with the messages when chat goes quiet; see PaintText.
+local textHolders = {}
+
 local function CreatePill(parent)
 	local pill = CreateFrame("Frame", nil, parent)
 	pill:SetHeight(PILL_HEIGHT)
@@ -309,6 +313,7 @@ end
 
 local function CreateRow(index)
 	local row = CreateFrame("Button", nil, sidebar)
+	textHolders[#textHolders + 1] = row
 	row:SetHeight(ROW_HEIGHT)
 	row:RegisterForClicks("LeftButtonUp")
 	row:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight", "ADD")
@@ -362,6 +367,7 @@ end
 -- shows their total on a pill instead.
 local function CreateSection(index)
 	local section = CreateFrame("Button", nil, sidebar)
+	textHolders[#textHolders + 1] = section
 	section:SetHeight(SECTION_HEIGHT)
 	section:RegisterForClicks("LeftButtonUp")
 	section:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight", "ADD")
@@ -621,6 +627,10 @@ function Shell:Create()
 	-- Invisible until the action bars have their places; see Reveal.
 	frame:SetAlpha(0)
 	WatchPlacement()
+	for _, holder in ipairs({ self.moreText, self.paneHeader, self.listToggle, self.hintFrame, ns.Messages.newButton }) do
+		textHolders[#textHolders + 1] = holder
+	end
+	lastActivity = GetTime()
 end
 
 -- Two kinds of chrome. Backgrounds (the window's fill and the marble panels)
@@ -719,12 +729,11 @@ local function Hovered()
 	return inside and result
 end
 
-local function TargetAmount()
+local function TargetAmount(now, active)
 	if not ns.db.fadeBackground then
 		return 1
 	end
-	local now = GetTime()
-	if Shell.typing or Hovered() then
+	if active then
 		lastHover = now
 	end
 	if now - lastHover < FADE_DELAY then
@@ -733,8 +742,55 @@ local function TargetAmount()
 	return 0
 end
 
+-- The text fades too, like the default chat: a couple of minutes after the
+-- last message or the last time you looked, the conversation list and the
+-- header fade along with the message lines (the message frame fades its own
+-- lines, line by line). A new message in the open conversation, or in a
+-- whisper, party, raid or guild row, brings the list back; hovering or typing
+-- brings everything back. Busy public channels in other rows don't.
+local textAmount -- 0: faded out, 1: fully shown
+local lastActivity = 0
+local lastWake = 0
+
+local function PaintText(amount)
+	textAmount = amount
+	for _, holder in ipairs(textHolders) do
+		holder:SetAlpha(amount)
+	end
+end
+
+function Shell:NoteActivity()
+	lastActivity = GetTime()
+end
+
+local function TextTarget(now)
+	if not ns.db.fadeText then
+		return 1
+	end
+	local quiet = now - lastActivity - ns.TEXT_VISIBLE
+	if quiet <= 0 then
+		return 1
+	end
+	return math.max(0, 1 - quiet / ns.TEXT_FADE)
+end
+
 local function OnFadeUpdate(_, elapsed)
-	local target = TargetAmount()
+	local now = GetTime()
+	local active = Shell.typing or Hovered()
+	if active then
+		lastActivity = now
+		-- Bring faded lines back, about once a second while you're here, so
+		-- they stay up for the full time after you leave.
+		if now - lastWake >= 1 then
+			lastWake = now
+			ns.Messages:WakeText()
+		end
+	end
+	local text = TextTarget(now)
+	if text ~= textAmount then
+		PaintText(text)
+	end
+	local target = TargetAmount(now, active)
 	if not shownAmount then
 		PaintChrome(target)
 		return
@@ -759,14 +815,19 @@ function Shell:DescribeChrome()
 	for i, inset in ipairs(self.chrome and self.chrome.insets or {}) do
 		insets[#insets + 1] = ("inset%d bg=%s nine=%s"):format(i, tostring(inset.Bg ~= nil), tostring(inset.NineSlice ~= nil))
 	end
-	return ("setting %d%%, fade %s, shown %s, %s frame; %s"):format(math.floor(ns.db.opacity * 100 + 0.5), ns.db.fadeBackground and "on" or "off",
-		shownAmount and (math.floor(shownAmount * 100 + 0.5) .. "%") or "unset", self.styled and "game" or "plain", table.concat(insets, ", "))
+	return ("setting %d%%, fade %s, shown %s, text %s (%s), %s frame; %s"):format(math.floor(ns.db.opacity * 100 + 0.5), ns.db.fadeBackground and "on" or "off",
+		shownAmount and (math.floor(shownAmount * 100 + 0.5) .. "%") or "unset",
+		textAmount and (math.floor(textAmount * 100 + 0.5) .. "%") or "unset", ns.db.fadeText and "fades" or "stays",
+		self.styled and "game" or "plain", table.concat(insets, ", "))
 end
 
 function Shell:ApplyOpacity()
 	if frame then
 		lastHover = GetTime()
+		lastActivity = lastHover
 		PaintChrome(1)
+		PaintText(1)
+		ns.Messages:ApplyTextFade()
 	end
 end
 

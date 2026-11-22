@@ -4,6 +4,9 @@ _G.HearYe = ns
 
 ns.name = addonName
 ns.SCHEMA = 7
+-- The default chat's timings: lines stay two minutes, then fade over three seconds.
+ns.TEXT_VISIBLE = 120
+ns.TEXT_FADE = 3
 
 -- Plain values; each is checked by type on load, so a damaged or old saved
 -- file falls back to the default instead of breaking the window.
@@ -19,6 +22,7 @@ local defaults = {
 	fontSize = 0, -- 0: the game's chat font size
 	opacity = 0.5,
 	fadeBackground = true, -- hide the background when the mouse is away, like the default chat
+	fadeText = true, -- fade the text too when chat is quiet, like the default chat
 	groupSound = "none", -- a sound for new party, raid and guild messages
 	sidebarHidden = false, -- the conversation list, as a compact strip
 	sized = false, -- true once you've resized the window yourself

@@ -195,7 +195,9 @@ local function Deliver(conv, line, r, g, b, countsAsUnread)
 	if conv.key == ns.Conversations.selectedKey and #conv.lines == 1 then
 		-- First message: redraw to drop the "No messages yet." note.
 		Messages:Render()
+		ns.Shell:NoteActivity()
 	elseif conv.key == ns.Conversations.selectedKey then
+		ns.Shell:NoteActivity()
 		local atBottom = smf:AtBottom()
 		smf:AddMessage(line, r, g, b)
 		-- Read state follows what was actually seen: a reader scrolled up into
@@ -206,6 +208,9 @@ local function Deliver(conv, line, r, g, b, countsAsUnread)
 		end
 	elseif countsAsUnread then
 		conv.unread = conv.unread + 1
+		if ns.Conversations.KeepsHistory(conv) then
+			ns.Shell:NoteActivity()
+		end
 	end
 	ns.Shell:Refresh()
 end
@@ -387,6 +392,25 @@ end
 function Messages:ShowNotice(text)
 	if smf then
 		smf:AddMessage(text, 0.85, 0.75, 0.45)
+		ns.Shell:NoteActivity()
+	end
+end
+
+-- Lines fade on their own when chat is quiet, like the default chat.
+function Messages:ApplyTextFade()
+	if not smf then
+		return
+	end
+	smf:SetFading(ns.db.fadeText and true or false)
+	smf:SetTimeVisible(ns.TEXT_VISIBLE)
+	smf:SetFadeDuration(ns.TEXT_FADE)
+	self:WakeText()
+end
+
+-- Show faded lines again, for another full stretch.
+function Messages:WakeText()
+	if smf and smf.ResetAllFadeTimes then
+		smf:ResetAllFadeTimes()
 	end
 end
 
@@ -517,7 +541,6 @@ function Messages:Init()
 	smf:SetAllPoints()
 	smf:SetFontObject(ChatFontNormal)
 	smf:SetJustifyH("LEFT")
-	smf:SetFading(false)
 	smf:SetMaxLines(500)
 	if smf.SetIndentedWordWrap then
 		smf:SetIndentedWordWrap(true)
@@ -564,6 +587,7 @@ function Messages:Init()
 		end
 	end)
 	self.frame = smf
+	self:ApplyTextFade()
 	self:ApplyFont()
 	HookScrollBindings()
 
@@ -582,6 +606,7 @@ function Messages:Init()
 		UpdateNewIndicator()
 	end)
 	newButton:Hide()
+	self.newButton = newButton
 
 	local listener = CreateFrame("Frame")
 	local failed = {}

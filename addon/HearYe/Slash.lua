@@ -259,7 +259,7 @@ local function MakeSoundMenu(parent)
 end
 
 local function Build()
-	window = NewWindow("HearYeSetupFrame", "Hear Ye", 420, 560)
+	window = NewWindow("HearYeSetupFrame", "Hear Ye", 420, 586)
 	window:SetPoint("CENTER", 0, 60)
 	window:SetFrameStrata("DIALOG")
 	window:SetToplevel(true)
@@ -333,8 +333,24 @@ local function Build()
 	fadeCheck.get = function() return ns.db.fadeBackground end
 	checks[#checks + 1] = fadeCheck
 
+	local quietCheck = CreateFrame("CheckButton", nil, window, "UICheckButtonTemplate")
+	quietCheck:SetSize(26, 26)
+	quietCheck:SetPoint("TOPLEFT", fadeCheck, "BOTTOMLEFT", 0, 0)
+	local quietText = quietCheck:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+	quietText:SetPoint("LEFT", quietCheck, "RIGHT", 4, 1)
+	quietText:SetText("Fade the text too when chat is quiet")
+	quietCheck:SetScript("OnClick", function(self)
+		ns.db.fadeText = self:GetChecked() and true or false
+		ns.Shell:ApplyOpacity()
+		if SOUNDKIT then
+			PlaySound(self:GetChecked() and SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON or SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_OFF)
+		end
+	end)
+	quietCheck.get = function() return ns.db.fadeText end
+	checks[#checks + 1] = quietCheck
+
 	local soundLabel = window:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-	soundLabel:SetPoint("TOPLEFT", fadeCheck, "BOTTOMLEFT", 4, -10)
+	soundLabel:SetPoint("TOPLEFT", quietCheck, "BOTTOMLEFT", 4, -10)
 	soundLabel:SetText("Sound for party, raid and guild messages")
 	local soundNote = window:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
 	soundNote:SetPoint("TOPLEFT", soundLabel, "BOTTOMLEFT", 0, -3)
