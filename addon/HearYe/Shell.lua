@@ -83,14 +83,26 @@ end
 -- The lowest a window from left to right can sit without covering a bar.
 local function ClearOfBars(left, right, bottom)
 	local uiScale = UIParent:GetEffectiveScale()
-	for _, name in ipairs(LOW_BARS) do
-		local bar = _G[name]
-		if bar and bar.IsVisible and bar:IsVisible() and bar:GetTop() and bar:GetLeft() then
-			local scale = bar:GetEffectiveScale() / uiScale
-			local barLeft, barRight, barTop = bar:GetLeft() * scale, bar:GetRight() * scale, bar:GetTop() * scale
+	local function check(region)
+		if region and region.IsVisible and region:IsVisible() and region:GetTop() and region:GetLeft() then
+			local scale = region:GetEffectiveScale() / uiScale
+			local barLeft, barRight, barTop = region:GetLeft() * scale, region:GetRight() * scale, region:GetTop() * scale
 			if barRight > left and barLeft < right and barTop > bottom then
 				bottom = barTop + 6
 			end
+		end
+	end
+	for _, name in ipairs(LOW_BARS) do
+		local bar = _G[name]
+		if bar then
+			check(bar)
+			-- The gryphons at the ends of the main bar are their own art and
+			-- reach past the bar itself.
+			local caps = bar.EndCaps
+			check(caps and caps.LeftEndCap)
+			check(caps and caps.RightEndCap)
+			check(bar.LeftEndCap)
+			check(bar.RightEndCap)
 		end
 	end
 	return bottom
