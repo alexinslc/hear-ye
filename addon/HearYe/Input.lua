@@ -41,7 +41,49 @@ end
 -- typing counts, so reading the Game row and pressing Enter stays put.
 local baselineKey
 
+-- The game titles a Battle.net whisper with the friend's real name ("Tell
+-- <name>:"). While real names are hidden, retitle it with the name Hear Ye
+-- shows (their character or BattleTag), and redo the text spacing the same
+-- way the game does, so typing starts after the shorter title.
+local function HideRealNameInHeader(editBox)
+	if not ns.db.hideRealNames or editBox:GetChatType() ~= "BN_WHISPER" or not CHAT_BN_WHISPER_SEND then
+		return
+	end
+	local name = editBox.GetName and editBox:GetName()
+	local header = name and _G[name .. "Header"]
+	local suffix = name and _G[name .. "HeaderSuffix"]
+	if not header then
+		return
+	end
+	local C = ns.Conversations
+	local conv = C:Get(C:KeyForEditBox(editBox))
+	local shown = conv and conv.label
+	if not shown then
+		local target = editBox:GetTellTarget()
+		local bnetID = target and BNet_GetBNetIDAccount and BNet_GetBNetIDAccount(target)
+		shown = C.CharacterFor(bnetID) or C.ShortBattleTag(C.BattleTagFor(bnetID))
+	end
+	header:SetWidth(0)
+	header:SetFormattedText(CHAT_BN_WHISPER_SEND, shown)
+	local headerWidth = (header:GetRight() or 0) - (header:GetLeft() or 0)
+	local boxWidth = (editBox:GetRight() or 0) - (editBox:GetLeft() or 0)
+	if suffix then
+		if headerWidth > boxWidth / 2 then
+			header:SetWidth(boxWidth / 2)
+			suffix:Show()
+		else
+			suffix:Hide()
+		end
+	end
+	local languageWidth = editBox.UpdateLanguageHeader and editBox:UpdateLanguageHeader() or 0
+	editBox:SetTextInsets(15 + header:GetWidth() + (suffix and suffix:IsShown() and suffix:GetWidth() or 0) + (languageWidth or 0), 13, 0, 0)
+end
+
 local function OnHeaderUpdated(editBox)
+	local ok, err = pcall(HideRealNameInHeader, editBox)
+	if not ok then
+		ns:Log("couldn't retitle a Battle.net whisper: %s", tostring(err))
+	end
 	if editBox ~= adopted or not editBox:HasFocus() then
 		return
 	end

@@ -499,6 +499,21 @@ section("Battle.net friends by BattleTag", function()
 	end
 	S.fire("BN_FRIEND_INFO_CHANGED")
 	check("logged off, it's back to the BattleTag", conv.label == "WhiteFinch", conv.label)
+	-- The open chat box's "Tell <name>:" title doesn't show the real name.
+	local header = { _w = 0 }
+	function header:SetFormattedText(fmt, value) self.text = fmt:format(tostring(value)) end
+	function header:SetWidth(w) self._w = w end
+	function header:GetWidth() return self._w end
+	function header:GetLeft() return 0 end
+	function header:GetRight() return 60 end
+	S.env.ChatFrame1EditBoxHeader = header
+	S.env.CHAT_BN_WHISPER_SEND = "Tell %s: "
+	S.env.BNet_GetBNetIDAccount = function() return 77 end
+	S.editBox:SetChatType("BN_WHISPER")
+	S.editBox:SetTellTarget("Real Person")
+	S.editBox:UpdateHeader()
+	check("the chat box title uses the shown name", header.text == "Tell WhiteFinch: ", header.text)
+	S.editBox:SetChatType("SAY")
 end)
 
 section("Secret values", function()
