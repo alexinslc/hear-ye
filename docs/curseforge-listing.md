@@ -2,7 +2,7 @@
 
 Everything the project form asks for. Paste the description in Markdown mode, and use [art/logo.png](../art/logo.png) as the logo.
 
-Before 1.0, drop the early-testing line. The gallery has the five images in [docs/screenshots/curseforge](screenshots/curseforge), titled as in the description. Retake them when the window's look changes, with only your own characters' messages in them.
+Before 1.0, drop the early-testing line. The five screenshots in [docs/screenshots/curseforge](screenshots/curseforge) go in the gallery only, not the description. Retake them when the window's look changes, with only your own characters' messages in them.
 
 | Field | Value |
 | --- | --- |
@@ -21,36 +21,37 @@ Before 1.0, drop the early-testing line. The gallery has the five images in [doc
 
 ![Hear Ye](https://raw.githubusercontent.com/alexinslc/hear-ye/main/art/banner.png)
 
-**Did someone just whisper you? Did your party ask you something three trade spam lines ago?** Hear Ye keeps each conversation in its own row, with an unread count, in one small window that looks like part of the game.
+**Hear ye, hear ye!**
+
+Did someone just whisper you? Did your party ask you something three trade spam lines ago? Hear Ye keeps each conversation in its own row, with an unread count, in one small window that looks like part of the game.
 
 **Hear Ye is in early testing.** Raid chat and combat have had the least testing so far.
 
-![The Hear Ye window](https://raw.githubusercontent.com/alexinslc/hear-ye/main/docs/screenshots/curseforge/01-window.png)
+## Every conversation in its own row
 
-### What it does
+Say, Party, Raid, Guild, each channel you've joined and each person who whispers you get a row, with a red pill for what you haven't read. Shrink the list to short names when you want more room to read.
 
-- **One row per conversation:** Say, Party, Raid, Guild, each channel you've joined, and each person who whispers you. A red pill shows what you haven't read.
-- **The game's own chat box:** press Enter and type as usual. Slash commands, /r, Tab, history and Shift-clicking links all work the way they always have.
-- **Click a row to read it,** then press Enter to talk there. Clicking never stops you walking. Typing /p or /w Name moves the window to that row too.
-- **Unsent text stays put:** switch rows mid-sentence and your text waits in the row you left.
-- **Survives a reload:** whispers, party, raid and guild keep their last 50 lines for a day, so a reload or quick relog doesn't wipe them. Public channels start fresh, like the default chat.
-- **See-through:** set how solid the background is, and let it fade when the mouse is away, like the default chat.
-- **Fades when quiet:** after 10 seconds with nothing said, the open conversation fades away and the list of conversations stays. It comes back when someone talks there, or when you hover or type.
-- **Battle.net friends by character or BattleTag:** friends show by the character they're playing, or their BattleTag, never their real name. You can turn this off in the settings.
-- **Compact list:** shrink the conversation list to short names and unread counts for more room to read.
-- **Fits your screen:** it sizes itself and sits just above your action bars, beside your character, at any resolution.
+## The chat you already know
 
-![A Battle.net whisper with a reply being typed](https://raw.githubusercontent.com/alexinslc/hear-ye/main/docs/screenshots/curseforge/02-whisper.png)
+Press Enter and type as usual. Slash commands, /r, Tab, history and Shift-clicking links all work the way they always have. Click a row to read it, then press Enter to talk there. Clicking never stops you walking, and typing /p or /w Name moves the window to that row too. Switch rows mid-sentence and your text waits in the row you left.
 
-![The window faded, with only the text over the game](https://raw.githubusercontent.com/alexinslc/hear-ye/main/docs/screenshots/curseforge/03-faded.png) ![The compact list](https://raw.githubusercontent.com/alexinslc/hear-ye/main/docs/screenshots/curseforge/04-compact.png)
+## Stays out of the way
 
-### Replacing the default chat
+Hear Ye sizes itself and sits just above your action bars, beside your character, at any resolution. The background fades when the mouse is away. After 10 quiet seconds the open conversation fades too, while the list stays, and it comes back when someone talks there or you hover or type.
+
+## Keeps what matters
+
+Whispers, party, raid and guild keep their last 50 lines for a day, so a reload or quick relog doesn't wipe them. Public channels start fresh, like the default chat. Battle.net friends show by the character they're playing, or their BattleTag, never their real name.
+
+## Replacing the default chat
 
 The first time you log in, a short setup asks whether Hear Ye should replace the default chat window. You can switch back at any time with `/hearye chat`, and Edit Mode always brings the default chat back while it's open. Hear Ye never filters or changes the default chat, so turning it off leaves everything as it was.
 
-![The settings window](https://raw.githubusercontent.com/alexinslc/hear-ye/main/docs/screenshots/curseforge/05-settings.png)
+## Good to know
 
-### Commands
+During boss encounters and some combat, the game hides chat details from addons. Hear Ye then shows the game's own line for the message, in its row when it can tell which one, or in the Game row. Hear Ye is free and isn't affiliated with Blizzard. Bugs or ideas: leave a comment, or open an issue on [GitHub](https://github.com/alexinslc/hear-ye).
+
+## Commands
 
 | Command | What it does |
 | --- | --- |
@@ -61,9 +62,3 @@ The first time you log in, a short setup asks whether Hear Ye should replace the
 | `/hearye lock` or `/hearye unlock` | Lock the window in place |
 | `/hearye reset` | Put the window back over the chat area |
 | `/hearye status` | Print what Hear Ye can read, for bug reports |
-
-### Good to know
-
-During boss encounters and some combat, the game hides chat details from addons. Hear Ye then shows the game's own line for the message, in its row when it can tell which one, or in the Game row. This addon is free, and it isn't affiliated with or endorsed by Blizzard Entertainment.
-
-Found a bug or have an idea? Leave a comment, or open an issue on [GitHub](https://github.com/alexinslc/hear-ye).
