@@ -2,7 +2,7 @@
 
 Everything the project form asks for. Paste the description in Markdown mode, and use [art/logo.png](../art/logo.png) as the logo.
 
-Before 1.0, drop the early-testing line. The screenshots listed in [artwork-brief.md](artwork-brief.md) go in the gallery and description once there are some without other players in them.
+Before 1.0, drop the early-testing line. The gallery has the five images in [docs/screenshots/curseforge](screenshots/curseforge), titled as in the description. Retake them when the window's look changes, with only your own characters' messages in them.
 
 | Field | Value |
 | --- | --- |
@@ -25,6 +25,8 @@ Before 1.0, drop the early-testing line. The screenshots listed in [artwork-brie
 
 **Hear Ye is in early testing.** Raid chat and combat have had the least testing so far.
 
+![The Hear Ye window](https://raw.githubusercontent.com/alexinslc/hear-ye/main/docs/screenshots/curseforge/01-window.png)
+
 ### What it does
 
 - **One row per conversation:** Say, Party, Raid, Guild, each channel you've joined, and each person who whispers you. A red pill shows what you haven't read.
@@ -37,9 +39,15 @@ Before 1.0, drop the early-testing line. The screenshots listed in [artwork-brie
 - **Compact list:** shrink the conversation list to short names and unread counts for more room to read.
 - **Fits your screen:** it sizes itself and sits just above your action bars, beside your character, at any resolution.
 
+![A Battle.net whisper with a reply being typed](https://raw.githubusercontent.com/alexinslc/hear-ye/main/docs/screenshots/curseforge/02-whisper.png)
+
+![The window faded, with only the text over the game](https://raw.githubusercontent.com/alexinslc/hear-ye/main/docs/screenshots/curseforge/03-faded.png) ![The compact list](https://raw.githubusercontent.com/alexinslc/hear-ye/main/docs/screenshots/curseforge/04-compact.png)
+
 ### Replacing the default chat
 
 The first time you log in, a short setup asks whether Hear Ye should replace the default chat window. You can switch back at any time with `/hearye chat`, and Edit Mode always brings the default chat back while it's open. Hear Ye never filters or changes the default chat, so turning it off leaves everything as it was.
+
+![The settings window](https://raw.githubusercontent.com/alexinslc/hear-ye/main/docs/screenshots/curseforge/05-settings.png)
 
 ### Commands
 
