@@ -627,7 +627,7 @@ function Shell:Create()
 	-- Invisible until the action bars have their places; see Reveal.
 	frame:SetAlpha(0)
 	WatchPlacement()
-	for _, holder in ipairs({ self.moreText, self.paneHeader, self.listToggle, self.hintFrame, ns.Messages.newButton }) do
+	for _, holder in ipairs({ self.moreText, self.paneHeader, self.listToggle, self.hintFrame }) do
 		textHolders[#textHolders + 1] = holder
 	end
 	lastActivity = GetTime()
@@ -757,6 +757,13 @@ local function PaintText(amount)
 	for _, holder in ipairs(textHolders) do
 		holder:SetAlpha(amount)
 	end
+end
+
+-- Text made outside the window's own code (the message pane's notes) joins
+-- the fade here.
+function Shell:AddTextHolder(region)
+	textHolders[#textHolders + 1] = region
+	region:SetAlpha(textAmount or 1)
 end
 
 function Shell:NoteActivity()

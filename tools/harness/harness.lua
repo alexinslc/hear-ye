@@ -657,6 +657,8 @@ section("Quiet chat fades the text", function()
 	settle(1)
 	check("the text stays while chat is busy", settle(60):find("text 100%%") ~= nil, Shell:DescribeChrome())
 	check("it fades after two quiet minutes", settle(130):find("text 0%%") ~= nil, Shell:DescribeChrome())
+	check("the empty-row note fades with it", S.ns.Messages.emptyNote:GetAlpha() == 0, S.ns.Messages.emptyNote:GetAlpha())
+	check("so does the New messages button", S.ns.Messages.newButton:GetAlpha() == 0, S.ns.Messages.newButton:GetAlpha())
 	local selected = S.ns.Conversations.selectedKey
 	if selected ~= "nearby" then
 		S.chatEvent("CHAT_MSG_SAY", "anyone near the inn?", "Someone-Forever", { guid = "Player-1-00000003" })

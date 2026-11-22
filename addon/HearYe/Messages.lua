@@ -420,10 +420,13 @@ function Messages:Render()
 	end
 	smf:Clear()
 	local conv = ns.Conversations:GetSelected()
+	-- The empty-row note isn't a message line: it sits over the pane and
+	-- fades with the list, so it never lingers after the text has gone.
+	self.emptyNote:SetShown(conv ~= nil and #conv.lines == 0)
 	if conv then
 		local lines = conv.lines
 		if #lines == 0 then
-			smf:AddMessage(conv.readOnly and "Nothing was said here." or "No messages yet.", 0.5, 0.5, 0.5)
+			self.emptyNote:SetText(conv.readOnly and "Nothing was said here." or "No messages yet.")
 		end
 		-- Mark where the messages you haven't seen start.
 		local firstUnread = conv.unread > 0 and (#lines - conv.unread + 1) or nil
@@ -607,6 +610,14 @@ function Messages:Init()
 	end)
 	newButton:Hide()
 	self.newButton = newButton
+
+	local emptyNote = ns.Shell.pane:CreateFontString(nil, "OVERLAY", "GameFontDisable")
+	emptyNote:SetPoint("BOTTOMLEFT", ns.Shell.pane, "BOTTOMLEFT", 2, 4)
+	emptyNote:SetJustifyH("LEFT")
+	emptyNote:Hide()
+	self.emptyNote = emptyNote
+	ns.Shell:AddTextHolder(newButton)
+	ns.Shell:AddTextHolder(emptyNote)
 
 	local listener = CreateFrame("Frame")
 	local failed = {}
