@@ -256,7 +256,7 @@ local function MakeSoundMenu(parent)
 end
 
 local function Build()
-	window = NewWindow("HearYeSetupFrame", "Hear Ye", 420, 500)
+	window = NewWindow("HearYeSetupFrame", "Hear Ye", 420, 560)
 	window:SetPoint("CENTER", 0, 60)
 	window:SetFrameStrata("DIALOG")
 	window:SetToplevel(true)
@@ -348,6 +348,16 @@ local function Build()
 		ns.Messages:PlayGroupSound(true)
 	end)
 	window.refreshers = { soundMenu.refresh }
+
+	AddCheck(window, soundMenu.frame, "Hide friends' real names",
+		"Shows Battle.net friends by BattleTag, and leaves out Battle.net notices that only come with real names.",
+		function() return ns.db.hideRealNames end,
+		function(on)
+			ns.db.hideRealNames = on and true or false
+			ns.Conversations:RelabelBNet()
+			ns.Messages:Render()
+			ns.Shell:Refresh()
+		end)
 
 	local clear = CreateFrame("Button", nil, window, "UIPanelButtonTemplate")
 	clear:SetSize(110, 24)

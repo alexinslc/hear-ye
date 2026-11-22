@@ -467,6 +467,18 @@ section("Battle.net friends by BattleTag", function()
 	local visible = shown:gsub("|H.-|h", ""):gsub("|h", "")
 	check("the real name isn't in the visible text", not visible:find("Real Person", 1, true), visible)
 	check("whispers still go to the account", conv and conv.tellTarget == "Real Person")
+	local game = C:Get("game")
+	local before = #game.lines
+	S.env.ChatFrame1:AddMessage("Real Person has come online.", 0.5, 0.8, 1, nil, nil, nil, "CHAT_MSG_BN_INLINE_TOAST_ALERT", {})
+	check("Battle.net notices are left out while real names are hidden", #game.lines == before)
+	S.ns.db.hideRealNames = false
+	C:RelabelBNet()
+	check("with real names shown, the row uses the real name", conv.label == "Real Person", conv.label)
+	S.env.ChatFrame1:AddMessage("Real Person has come online.", 0.5, 0.8, 1, nil, nil, nil, "CHAT_MSG_BN_INLINE_TOAST_ALERT", {})
+	check("and Battle.net notices come back", #game.lines == before + 1)
+	S.ns.db.hideRealNames = true
+	C:RelabelBNet()
+	check("hiding them again goes back to the BattleTag", conv.label == "WhiteFinch")
 end)
 
 section("Secret values", function()

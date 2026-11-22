@@ -22,6 +22,7 @@ local defaults = {
 	groupSound = "none", -- a sound for new party, raid and guild messages
 	sidebarHidden = false, -- the conversation list, as a compact strip
 	sized = false, -- true once you've resized the window yourself
+	hideRealNames = true, -- Battle.net friends by BattleTag, not real name
 }
 
 -- Saved history is just enough to carry over a reload or a quick relog:

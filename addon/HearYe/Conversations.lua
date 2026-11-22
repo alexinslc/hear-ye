@@ -452,11 +452,27 @@ function Conversations:EnsureBNet(bnetID, tokenName)
 		conv = Create(key, { chatType = "BN_WHISPER", sort = 30 })
 		created = true
 	end
-	-- tellTarget is what the game needs to send the whisper; it's never shown.
+	-- tellTarget is what the game needs to send the whisper.
 	conv.bnetID, conv.battleTag, conv.tellTarget = bnetID, tag or conv.battleTag, tokenName
-	conv.label = ShortBattleTag(conv.battleTag)
-	conv.fullName = conv.battleTag or conv.label
+	self:LabelBNet(conv)
 	return conv, created
+end
+
+-- A Battle.net friend's name in the list and header: the BattleTag while
+-- "Hide friends' real names" is on (the default), their real name, as the
+-- game gives it, when it's off.
+function Conversations:LabelBNet(conv)
+	local realName = not ns.db.hideRealNames and self:ResolveBNet(conv)
+	conv.label = realName or ShortBattleTag(conv.battleTag)
+	conv.fullName = realName or conv.battleTag or conv.label
+end
+
+function Conversations:RelabelBNet()
+	for _, conv in pairs(byKey) do
+		if conv.chatType == "BN_WHISPER" then
+			self:LabelBNet(conv)
+		end
+	end
 end
 
 -- The current account name to whisper a Battle.net friend, found by BattleTag.
@@ -715,8 +731,7 @@ function Conversations:Restore()
 			conv.lines = kept
 			conv.unread = tonumber(conv.unread) or 0
 			if conv.chatType == "BN_WHISPER" then
-				conv.label = ShortBattleTag(conv.battleTag)
-				conv.fullName = conv.battleTag or conv.label
+				self:LabelBNet(conv)
 			end
 			conv.sort = tonumber(conv.sort) or 30
 			conv.label = conv.label or key

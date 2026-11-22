@@ -115,9 +115,11 @@ local function FormatLine(msgType, text, sender, language, lineID, guid, bnetID,
 	-- Battle.net friends by BattleTag, not their real name. The name the game
 	-- gave stays only inside the link, where it's needed to whisper back.
 	local display
-	if BNET[msgType] then
+	if BNET[msgType] and ns.db.hideRealNames then
 		local C = ns.Conversations
 		display = C.ShortBattleTag(C.BattleTagFor(bnetID))
+	elseif BNET[msgType] then
+		display = sender
 	else
 		display = (Ambiguate and Ambiguate(sender, "short")) or sender
 	end
@@ -246,6 +248,13 @@ local function OnDefaultChatLine(_, text, r, g, b, _, _, _, event, eventArgs)
 	end
 	local C = ns.Conversations
 	local conv
+	-- Battle.net notices (a friend came online, and so on) only come with the
+	-- friend's real name, so they're left out while real names are hidden.
+	-- Whispers aren't: those always reach their row.
+	if ns.db.hideRealNames and event and ns.CanAccess(event) and not CONVERSATION_EVENTS[event]
+		and type(event) == "string" and event:find("^CHAT_MSG_BN") then
+		return
+	end
 	if event and ns.CanAccess(event) and CONVERSATION_EVENTS[event] then
 		if ArgsAccessible(eventArgs) then
 			return
