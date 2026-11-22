@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.3
+
+- Whisper rows show a small x on hover to close a conversation you're done with.
+- Removed the close button from the title bar, so a stray click can't hide the window. /hearye still hides and shows it.
+- The bell now fills the round portrait.
+- "No messages yet." no longer sits under game lines in an empty conversation.
+
 ## 0.4.2
 
 - Leaving a party, raid or instance group no longer leaves an "Earlier" row behind. The row clears and the next group starts fresh.

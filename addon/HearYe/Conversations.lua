@@ -775,6 +775,24 @@ function Conversations:Restore()
 	ns:Log("restored %d conversations", restored)
 end
 
+-- Close a whisper you're done with: the row and its lines go. Another
+-- whisper from them starts a new one.
+function Conversations:Close(key)
+	local conv = byKey[key]
+	if not conv or (conv.chatType ~= "WHISPER" and conv.chatType ~= "BN_WHISPER") then
+		return false
+	end
+	byKey[key] = nil
+	if self.selectedKey == key then
+		self.selectedKey = "nearby"
+		ns.Messages:Render()
+		ns.Input:PointQuietly(byKey.nearby or self:Get("nearby"))
+	end
+	ns:Log("closed %s", key)
+	ns.Shell:Refresh()
+	return true
+end
+
 -- Forget saved and shown history for this character. Rows for places you
 -- can still chat stay; whisper rows go.
 function Conversations:ClearHistory()

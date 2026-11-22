@@ -289,6 +289,8 @@ local function OnDefaultChatLine(_, text, r, g, b, _, _, _, event, eventArgs)
 		-- there by Print.
 		local passing = conv.key == "game" and C.selectedKey ~= "game" and smf
 		if passing and not own then
+			-- "No messages yet." would sit on top of it.
+			Messages.emptyNote:Hide()
 			smf:AddMessage(text, r or 1, g or 1, b or 1)
 			ns.Shell:NoteActivity()
 		end

@@ -310,6 +310,14 @@ local function CreatePill(parent)
 	return pill
 end
 
+-- The x shows while the pointer is anywhere on a whisper row, the x included.
+local function UpdateClose(row)
+	local show = row.closable and row:IsMouseOver() and true or false
+	row.close:SetShown(show)
+	row.pill:SetAlpha(show and 0 or 1)
+	row.level:SetAlpha(show and 0 or 1)
+end
+
 local function CreateRow(index)
 	local row = CreateFrame("Button", nil, sidebar)
 	row:SetHeight(ROW_HEIGHT)
@@ -349,13 +357,43 @@ local function CreateRow(index)
 	row.tag:SetJustifyH("LEFT")
 	row.tag:SetWordWrap(false)
 
+	-- Whisper rows get a small x on hover, in place of the count, to close
+	-- a conversation you're done with.
+	row.close = CreateFrame("Button", nil, row)
+	row.close:SetSize(14, 14)
+	row.close:SetPoint("RIGHT", row, "RIGHT", -3, 0)
+	row.close:SetNormalTexture("Interface\\Buttons\\UI-StopButton")
+	row.close:SetHighlightTexture("Interface\\Buttons\\UI-StopButton", "ADD")
+	row.close:Hide()
+	row.close:SetScript("OnClick", function()
+		if row.conv then
+			GameTooltip_Hide()
+			ns.Conversations:Close(row.conv.key)
+		end
+	end)
+	row.close:SetScript("OnEnter", function(self)
+		GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+		GameTooltip:SetText("Close this conversation", 1, 1, 1)
+		GameTooltip:Show()
+	end)
+	row.close:SetScript("OnLeave", function()
+		GameTooltip_Hide()
+		UpdateClose(row)
+	end)
+
 	row:SetScript("OnClick", function(self)
 		if self.conv then
 			ns.Conversations:Select(self.conv.key, false)
 		end
 	end)
-	row:SetScript("OnEnter", ShowRowTooltip)
-	row:SetScript("OnLeave", GameTooltip_Hide)
+	row:SetScript("OnEnter", function(self)
+		ShowRowTooltip(self)
+		UpdateClose(self)
+	end)
+	row:SetScript("OnLeave", function(self)
+		GameTooltip_Hide()
+		UpdateClose(self)
+	end)
 	rows[index] = row
 	return row
 end
@@ -408,18 +446,20 @@ local function OpenMenu(owner)
 	end
 end
 
-local ICON = "Interface\\AddOns\\HearYe\\Textures\\Icon"
+-- The round portrait needs a filled picture: the plain bell icon would leave
+-- an empty dark ring around it.
+local PORTRAIT = "Interface\\AddOns\\HearYe\\Textures\\Portrait"
 
 function Shell:Create()
 	-- The game's own window, the same one Fireside Tales uses: title bar,
-	-- round portrait, close button. A plain bronze frame stands in if the
+	-- round portrait. A plain bronze frame stands in if the
 	-- client doesn't have the template.
 	local ok, made = pcall(CreateFrame, "Frame", "HearYeFrame", UIParent, "PortraitFrameTemplate")
 	if ok and made and made.SetTitle then
 		frame = made
 		frame:SetTitle("Hear Ye")
 		if frame.SetPortraitToAsset then
-			frame:SetPortraitToAsset(ICON)
+			frame:SetPortraitToAsset(PORTRAIT)
 		end
 		self.styled = true
 	else
@@ -428,15 +468,11 @@ function Shell:Create()
 		local title = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
 		title:SetPoint("TOP", 0, -8)
 		title:SetText("Hear Ye")
-		frame.CloseButton = CreateFrame("Button", nil, frame, "UIPanelCloseButton")
-		frame.CloseButton:SetPoint("TOPRIGHT", -2, -2)
 	end
-	-- Closing it is the same as /hearye hide, so it stays closed after a reload.
+	-- No close button: one stray click would put you back on the default
+	-- chat. /hearye still hides and shows the window.
 	if frame.CloseButton then
-		frame.CloseButton:SetScript("OnClick", function()
-			Shell:SetShown(false)
-			ns:Print("Hidden. Type /hearye to bring it back.")
-		end)
+		frame.CloseButton:Hide()
 	end
 	-- The lowest layer, so unit frames (your character, target) and other
 	-- windows always draw over Hear Ye, never under it. The native edit box
@@ -451,11 +487,11 @@ function Shell:Create()
 	end
 	ApplyPosition()
 
-	-- The title bar: drag handle and right-click menu. Stops short of the
-	-- gear and close button so they stay clickable.
+	-- The title bar: drag handle and right-click menu. The gear sits over
+	-- its left end so it stays clickable.
 	local header = CreateFrame("Frame", nil, frame)
 	header:SetPoint("TOPLEFT", 56, -1) -- the gear sits over its left end
-	header:SetPoint("TOPRIGHT", -46, -1)
+	header:SetPoint("TOPRIGHT", -8, -1)
 	header:SetHeight(HEADER_HEIGHT)
 	header:EnableMouse(true)
 	header:RegisterForDrag("LeftButton")
@@ -1120,6 +1156,8 @@ function Shell:Refresh()
 				else
 					row.level:SetPoint("RIGHT", row, "RIGHT", -6, 0)
 				end
+				row.closable = not compact and (conv.chatType == "WHISPER" or conv.chatType == "BN_WHISPER")
+				UpdateClose(row)
 				row:Show()
 			end
 		end

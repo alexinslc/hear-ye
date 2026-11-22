@@ -543,8 +543,9 @@ section("The window", function()
 	local S = first
 	local Shell = S.ns.Shell
 	local frame = Shell.frame
-	frame.CloseButton:GetScript("OnClick")()
-	check("the close button hides the window", not frame:IsShown() and S.ns.db.shown == false)
+	check("there's no close button to click by accident", not frame.CloseButton or not frame.CloseButton:IsShown())
+	S.slash("hide")
+	check("/hearye hide hides the window", not frame:IsShown() and S.ns.db.shown == false)
 	S.slash("show")
 	check("/hearye show brings it back", frame:IsShown() and S.ns.db.shown == true)
 	Shell:ApplyOpacity()
@@ -613,6 +614,23 @@ section("Clicking a row", function()
 	C:Select("nearby", false)
 end)
 
+section("Closing a whisper", function()
+	local S = first
+	local C = S.ns.Conversations
+	S.chatEvent("CHAT_MSG_WHISPER", "i tried to rez you", "Corwin Tester-Forever", { guid = "Player-1-00000009" })
+	local conv = C:EnsureWhisper("Corwin Tester-Forever")
+	local key = conv.key
+	C:Select(key, false)
+	check("closing a whisper removes its row", C:Close(key) and C:Get(key) == nil)
+	check("and moves you to Say", C.selectedKey == "nearby", C.selectedKey)
+	S.chatEvent("CHAT_MSG_WHISPER", "thanks anyways", "Corwin Tester-Forever", { guid = "Player-1-00000009" })
+	local again = C:Get(key)
+	check("a new whisper starts a fresh row", again ~= nil and #again.lines == 1, again and #again.lines)
+	check("Say can't be closed", not C:Close("nearby") and C:Get("nearby") ~= nil)
+	check("Guild can't be closed either", not C:Close("guild"))
+	C:Close(key)
+end)
+
 section("Game lines show in the open row", function()
 	local S = first
 	local C = S.ns.Conversations
@@ -624,6 +642,7 @@ section("Game lines show in the open row", function()
 	local shown = smf:GetNumMessages()
 	S.env.ChatFrame1:AddMessage("You receive loot: [Linen Cloth].", 0, 0.67, 0)
 	check("loot shows in the open row", smf:GetNumMessages() == shown + 1)
+	check("and the empty-row note doesn't sit on top of it", #party.lines > 0 or not S.ns.Messages.emptyNote:IsShown())
 	check("but isn't saved to it", #party.lines == partyLines)
 	check("the Game row still keeps it", #game.lines == gameLines + 1)
 	check("and it isn't unread there, you saw it", game.unread == before, game.unread)
