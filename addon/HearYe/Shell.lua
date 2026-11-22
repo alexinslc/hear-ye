@@ -7,7 +7,7 @@ local Shell = {}
 ns.Shell = Shell
 
 local SIDEBAR_WIDTH = 150
-local COMPACT_WIDTH = 50 -- the list as a strip of markers and unread pills
+local COMPACT_WIDTH = 58 -- the list as a strip of markers and unread pills
 local HEADER_HEIGHT = 22
 local INPUT_HEIGHT = 30
 local ROW_HEIGHT = 18
@@ -892,7 +892,9 @@ function Shell:Refresh()
 		elseif selected.chatType == "CHANNEL" and selected.fullName and selected.fullName ~= selected.label then
 			self:SetHint("To " .. selected.fullName .. "  -  press Enter to chat")
 		elseif selected.chatType then
-			self:SetHint("To " .. (selected.fullName or selected.label) .. "  -  press Enter to chat")
+			-- A Battle.net friend goes by their name here; the BattleTag is in the header.
+			local name = selected.chatType == "BN_WHISPER" and selected.label or (selected.fullName or selected.label)
+			self:SetHint("To " .. name .. "  -  press Enter to chat")
 		else
 			-- A read-only row: say where typing will actually go.
 			local editBox = ns.Input:GetAdopted()

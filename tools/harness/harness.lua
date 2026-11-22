@@ -453,7 +453,7 @@ section("Hiding the conversation list", function()
 	local Shell = S.ns.Shell
 	Shell.sidebar._h = 300 -- room for rows, which the stub frames don't lay out
 	Shell.listToggle:GetScript("OnClick")()
-	check("the list goes compact", S.ns.db.sidebarHidden == true and Shell.sidebar:GetWidth() == 50, Shell.sidebar:GetWidth())
+	check("the list goes compact", S.ns.db.sidebarHidden == true and Shell.sidebar:GetWidth() == 58, Shell.sidebar:GetWidth())
 	S.chatEvent("CHAT_MSG_WHISPER", "still there?", "Brana Tester-Forever", { guid = "Player-1-00000002" })
 	local shownPills = 0
 	for _, conv in ipairs(S.ns.Conversations:Sorted()) do
