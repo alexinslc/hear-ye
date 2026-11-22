@@ -597,6 +597,40 @@ section("A reload keeps the most recent whisper first", function()
 	end
 end)
 
+section("Saved history is small", function()
+	local S = Boot(nil)
+	S.login()
+	S.now = 1800000000
+	for i = 1, 60 do
+		S.chatEvent("CHAT_MSG_WHISPER", "line " .. i, "Chatty Friend-Forever", { guid = "Player-1-00000007" })
+	end
+	S.chatEvent("CHAT_MSG_SAY", "just passing by", "Someone-Forever", { guid = "Player-1-00000003" })
+	local db = S.logout()
+	local saved = db.characters["Player-1-00000001"].convs
+	local whisperLines, sayKept = 0, saved.nearby ~= nil
+	for _, conv in pairs(saved) do
+		if conv.chatType == "WHISPER" then whisperLines = #conv.lines end
+	end
+	check("a conversation keeps its last 50 lines", whisperLines == 50, whisperLines)
+	check("Say isn't saved", not sayKept)
+
+	-- Two days later, yesterday's whispers are gone.
+	local R = Boot(db)
+	R.now = 1800000000 + 2 * 86400
+	R.login()
+	local left = 0
+	for _, c in ipairs(R.ns.Conversations:Sorted()) do
+		if c.chatType == "WHISPER" then left = left + #c.lines end
+	end
+	check("lines older than a day aren't brought back", left == 0, left)
+
+	-- Older saved files with 7 days of history load with today's limits.
+	local old = { schema = 4, history = { days = 7, perConversation = 500, total = 5000 } }
+	local O = Boot(old)
+	O.login()
+	check("old history limits move to 1 day and 50 lines", O.ns.db.history.days == 1 and O.ns.db.history.perConversation == 50)
+end)
+
 section("A broken load doesn't wipe history", function()
 	-- Leave out Shell.lua so login fails partway, like the bug that once
 	-- saved an empty history over the real one.

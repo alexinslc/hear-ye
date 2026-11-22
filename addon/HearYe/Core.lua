@@ -3,7 +3,7 @@ local addonName, ns = ...
 _G.HearYe = ns
 
 ns.name = addonName
-ns.SCHEMA = 4
+ns.SCHEMA = 5
 
 -- Plain values; each is checked by type on load, so a damaged or old saved
 -- file falls back to the default instead of breaking the window.
@@ -24,8 +24,9 @@ local defaults = {
 	sized = false, -- true once you've resized the window yourself
 }
 
--- Proposed bounds for saved history; not yet tuned in play.
-local HISTORY_DEFAULTS = { days = 7, perConversation = 500, total = 5000 }
+-- Saved history is just enough to carry over a reload or a quick relog:
+-- the last 50 lines of each of your own conversations, for one day.
+local HISTORY_DEFAULTS = { days = 1, perConversation = 50, total = 1000 }
 
 local function Clamp(value, low, high, fallback)
 	value = tonumber(value)
@@ -40,6 +41,10 @@ local MIGRATIONS = {
 	[1] = function(db)
 		-- Schema 1 (Phases 1-3) had no saved history or settings.
 		db.characters = {}
+	end,
+	[4] = function(db)
+		-- History limits went from 7 days and 500 lines to 1 day and 50.
+		db.history = nil
 	end,
 	[3] = function(db)
 		-- Before this, a saved position meant the window had been moved or

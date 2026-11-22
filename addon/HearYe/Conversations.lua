@@ -8,7 +8,17 @@ local _, ns = ...
 local Conversations = {}
 ns.Conversations = Conversations
 
-local MAX_LINES = 300
+-- Lines kept in memory while you play. Saved history is much smaller; see
+-- Save and the history settings in Core.lua.
+local MAX_LINES = 500
+
+-- Only your own conversations are saved across reloads: whispers, party,
+-- raid and guild. Say, public channels and Game last for the session, like
+-- the default chat.
+local KEEPS_HISTORY = {
+	WHISPER = true, BN_WHISPER = true, PARTY = true, RAID = true,
+	INSTANCE_CHAT = true, GUILD = true, OFFICER = true,
+}
 local MAX_CHANNELS = (Constants and Constants.ChatFrameConstants and Constants.ChatFrameConstants.MaxChatChannels) or 20
 
 local byKey = {}
@@ -607,29 +617,31 @@ function Conversations:Save()
 	local out = { selected = self.selectedKey, savedAt = time(), convs = {} }
 	local all = {}
 	for key, conv in pairs(byKey) do
-		local saved = {}
-		for _, field in ipairs(SAVED_FIELDS) do
-			saved[field] = conv[field]
-		end
-		if conv.group == "guild" and conv.available and conv.available() then
-			-- A guild is known by its name; party members say nothing about it.
-			saved.members = nil
-			saved.guildName = (GetGuildInfo and GetGuildInfo("player")) or conv.guildName
-		elseif conv.group and conv.chatType and conv.available and conv.available() then
-			saved.members = GroupMembers()
-		end
-		saved.lines = {}
-		local first = math.max(1, #conv.lines - limits.perConversation + 1)
-		for i = first, #conv.lines do
-			local l = conv.lines[i]
-			if not l.secret and l.t and l.t >= cutoff then
-				local line = { text = ScrubLinks(l.text), r = l.r, g = l.g, b = l.b, t = l.t }
-				saved.lines[#saved.lines + 1] = line
-				all[#all + 1] = { lines = saved.lines, line = line }
+		if KEEPS_HISTORY[conv.chatType] then
+			local saved = {}
+			for _, field in ipairs(SAVED_FIELDS) do
+				saved[field] = conv[field]
 			end
-		end
-		if #saved.lines > 0 or saved.draft or conv.group then
-			out.convs[key] = saved
+			if conv.group == "guild" and conv.available and conv.available() then
+				-- A guild is known by its name; party members say nothing about it.
+				saved.members = nil
+				saved.guildName = (GetGuildInfo and GetGuildInfo("player")) or conv.guildName
+			elseif conv.group and conv.chatType and conv.available and conv.available() then
+				saved.members = GroupMembers()
+			end
+			saved.lines = {}
+			local first = math.max(1, #conv.lines - limits.perConversation + 1)
+			for i = first, #conv.lines do
+				local l = conv.lines[i]
+				if not l.secret and l.t and l.t >= cutoff then
+					local line = { text = ScrubLinks(l.text), r = l.r, g = l.g, b = l.b, t = l.t }
+					saved.lines[#saved.lines + 1] = line
+					all[#all + 1] = { lines = saved.lines, line = line }
+				end
+			end
+			if #saved.lines > 0 or saved.draft or conv.group then
+				out.convs[key] = saved
+			end
 		end
 	end
 	-- Total cap: drop the oldest lines first, across all conversations.
@@ -661,13 +673,25 @@ function Conversations:Restore()
 	local inOrder = {}
 	for key, s in pairs(saved.convs) do
 		-- Former guild rows from older versions aren't brought back.
-		if type(key) == "string" and type(s) == "table" and type(s.lines) == "table" and s.archiveOf ~= "guild" then
+		if type(key) == "string" and type(s) == "table" and type(s.lines) == "table" and s.archiveOf ~= "guild" and KEEPS_HISTORY[s.chatType] then
 			local conv = Create(key, {})
 			inOrder[#inOrder + 1] = conv
 			for _, field in ipairs(SAVED_FIELDS) do
 				conv[field] = s[field]
 			end
-			conv.lines = s.lines
+			-- Only what today's limits keep: recent lines, the last few of each.
+			local limits = ns.db.history
+			local cutoff = time() - limits.days * 86400
+			local kept = {}
+			for _, l in ipairs(s.lines) do
+				if type(l) == "table" and tonumber(l.t) and l.t >= cutoff then
+					kept[#kept + 1] = l
+				end
+			end
+			while #kept > limits.perConversation do
+				table.remove(kept, 1)
+			end
+			conv.lines = kept
 			conv.unread = tonumber(conv.unread) or 0
 			conv.sort = tonumber(conv.sort) or 30
 			conv.label = conv.label or key
@@ -700,6 +724,9 @@ function Conversations:Restore()
 	for _, conv in ipairs(inOrder) do
 		Touch(conv)
 	end
+	-- The selected row may be a channel, which only exists once channels
+	-- are read; Init selects it again after that.
+	self.restoredSelection = saved.selected
 	if saved.selected and byKey[saved.selected] then
 		self.selectedKey = saved.selected
 	end
@@ -726,10 +753,13 @@ function Conversations:ClearHistory()
 end
 
 function Conversations:Init()
-	MAX_LINES = ns.db.history.perConversation
 	self:Restore()
 	self:ReconcileGroups()
 	self:ReconcileChannels()
+	local wanted = self.restoredSelection
+	if type(wanted) == "string" and byKey[wanted] then
+		self.selectedKey = wanted
+	end
 	self.loaded = true
 	-- Group and guild data can arrive a moment after login; decide whether a
 	-- restored group is the same one once it has.
