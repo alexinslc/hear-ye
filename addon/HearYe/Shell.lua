@@ -234,7 +234,11 @@ local function ShowRowTooltip(row)
 	if conv.chatType == "WHISPER" or conv.chatType == "BN_WHISPER" then
 		if conv.level then
 			GameTooltip:AddLine(("Level %d %s"):format(conv.level, conv.className or ""), 0.8, 0.8, 0.8)
-			GameTooltip:AddLine("Last known, " .. (conv.levelSource or "from the game"), 0.6, 0.6, 0.6)
+			if conv.chatType == "BN_WHISPER" and ns.Conversations.CharacterFor(conv.bnetID) then
+				GameTooltip:AddLine("Playing now", 0.25, 1, 0.25)
+			else
+				GameTooltip:AddLine("Last known, " .. (conv.levelSource or "from the game"), 0.6, 0.6, 0.6)
+			end
 		else
 			GameTooltip:AddLine(conv.className and (conv.className .. ", level unknown") or "Class and level unknown", 0.8, 0.8, 0.8)
 		end
