@@ -506,6 +506,7 @@ section("Battle.net friends by BattleTag", function()
 	function header:GetWidth() return self._w end
 	function header:GetLeft() return 0 end
 	function header:GetRight() return 60 end
+	function header:GetStringWidth() return 60 end
 	S.env.ChatFrame1EditBoxHeader = header
 	S.env.CHAT_BN_WHISPER_SEND = "Tell %s: "
 	S.env.BNet_GetBNetIDAccount = function() return 77 end

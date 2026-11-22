@@ -65,7 +65,9 @@ local function HideRealNameInHeader(editBox)
 	end
 	header:SetWidth(0)
 	header:SetFormattedText(CHAT_BN_WHISPER_SEND, shown)
-	local headerWidth = (header:GetRight() or 0) - (header:GetLeft() or 0)
+	-- Measured from the text itself: the title's own edges haven't moved
+	-- to the new text yet at this point.
+	local headerWidth = header.GetStringWidth and header:GetStringWidth() or 0
 	local boxWidth = (editBox:GetRight() or 0) - (editBox:GetLeft() or 0)
 	if suffix then
 		if headerWidth > boxWidth / 2 then
