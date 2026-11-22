@@ -63,19 +63,18 @@ local function HideRealNameInHeader(editBox)
 		local bnetID = target and BNet_GetBNetIDAccount and BNet_GetBNetIDAccount(target)
 		shown = C.CharacterFor(bnetID) or C.ShortBattleTag(C.BattleTagFor(bnetID))
 	end
+	-- A title longer than half the box would make the game cut it and add a
+	-- stray ":"; use the first name instead, and no extra marker.
 	header:SetWidth(0)
 	header:SetFormattedText(CHAT_BN_WHISPER_SEND, shown)
-	-- Measured from the text itself: the title's own edges haven't moved
-	-- to the new text yet at this point.
-	local headerWidth = header.GetStringWidth and header:GetStringWidth() or 0
 	local boxWidth = (editBox:GetRight() or 0) - (editBox:GetLeft() or 0)
+	local first = shown:match("^(%S+)")
+	if boxWidth > 0 and first and first ~= shown and (header:GetStringWidth() or 0) > boxWidth / 2 then
+		header:SetFormattedText(CHAT_BN_WHISPER_SEND, first)
+	end
+	header:SetWidth(header:GetStringWidth() or 0)
 	if suffix then
-		if headerWidth > boxWidth / 2 then
-			header:SetWidth(boxWidth / 2)
-			suffix:Show()
-		else
-			suffix:Hide()
-		end
+		suffix:Hide()
 	end
 	local languageWidth = editBox.UpdateLanguageHeader and editBox:UpdateLanguageHeader() or 0
 	editBox:SetTextInsets(15 + header:GetWidth() + (suffix and suffix:IsShown() and suffix:GetWidth() or 0) + (languageWidth or 0), 13, 0, 0)
