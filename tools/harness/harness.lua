@@ -427,38 +427,9 @@ section("Placement", function()
 	local pw = S.ns.Shell.frame:GetWidth()
 	check("it stops short of the player frame", pw <= 380 - 6 - 16 and pw >= 300, pw)
 
-	-- Under my character: wide, from the top of the bars to the bottom of
-	-- the player frame. Turning on another bar makes it shorter.
-	local function box(l, r, b, t)
-		return {
-			IsVisible = function() return true end,
-			GetEffectiveScale = function() return 1 end,
-			GetLeft = function() return l end, GetRight = function() return r end,
-			GetBottom = function() return b end, GetTop = function() return t end,
-		}
-	end
-	local tallPlayer = box(380, 510, 300, 370)
-	local bar = box(300, 900, 60, 100)
-	S = Boot({ layout = "under" }, { stubs = { PlayerFrame = tallPlayer, MultiBarBottomLeft = bar } })
-	S.env.UIParent:SetSize(2560 / 1440 * 768, 768)
+	S = Boot({ schema = 5, layout = "under" })
 	S.login()
-	S.fire("EDIT_MODE_LAYOUTS_UPDATED")
-	S.runTimers()
-	local uw, uh = S.ns.Shell.frame:GetSize()
-	check("under my character ends just past the player frame", uw == 510 + 16 - 16, uw)
-	check("it fills the gap from the bars to the player frame", uh == 300 - 6 - 106, uh)
-	bar.GetTop = function() return 130 end -- a second bar row turned on
-	S.fire("UPDATE_BONUS_ACTIONBAR")
-	S.runTimers()
-	check("another bar makes it shorter", S.ns.Shell.frame:GetHeight() == 300 - 6 - 136, S.ns.Shell.frame:GetHeight())
-
-	local shell = S.ns.Shell
-	check("under my character uses the slim title bar", shell:IsSlim() and shell.slimBorder:IsShown() and not shell.frame.NineSlice:IsShown())
-	check("the slim layout drops the conversation name row", not shell.paneHeader:IsShown())
-
-	S.ns.db.layout = "beside"
-	shell:ApplyStyle()
-	check("beside my character brings back the full title bar", not shell.slimBorder:IsShown() and shell.frame.NineSlice:IsShown() and shell:ListTop() == -60)
+	check("a saved Under my character layout is cleared", S.ns.db.layout == nil and S.ns.db.schema == S.ns.SCHEMA)
 
 	S = Boot({ schema = 3, position = { "BOTTOMLEFT", "BOTTOMLEFT", 40, 200 }, width = 700, height = 380 })
 	S.login()

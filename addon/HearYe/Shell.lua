@@ -136,22 +136,6 @@ local function ClearOfUnitFrames(left, bottom, width, height)
 	return width, height
 end
 
--- Under your character: the lowest unit frame bottom above the window, so
--- the window can grow up to it and no further.
-local function UnitFramesFloor(left, right, bottom)
-	local floor
-	for _, name in ipairs(UNIT_FRAMES) do
-		local l, r, b = Bounds(_G[name])
-		if l and r > left and l < right and b > bottom then
-			floor = math.min(floor or b, b)
-		end
-	end
-	return floor
-end
-
--- Shortest the "under my character" layout gets when the gap is tight.
-local UNDER_MIN_HEIGHT = 120
-
 local function ApplyPosition()
 	local width, height = ns.db.width, ns.db.height
 	local pos = ns.db.position
@@ -163,31 +147,8 @@ local function ApplyPosition()
 	end
 	local margin = math.floor(Clamp(UIParent:GetWidth() * 0.012, 10, 32))
 	local autoWidth, autoHeight = AutoSize()
-	if ns.db.layout == "under" then
-		-- Wide and short: across the space above the action bars, up to the
-		-- bottom of your character's frame.
-		-- As wide as the space under your character's frame, ending a little
-		-- past its right edge, rather than a fixed share of the screen.
-		if not ns.db.sized then
-			local _, playerRight = Bounds(_G.PlayerFrame)
-			local cap = UIParent:GetWidth() * 0.45
-			if playerRight then
-				width = math.floor(Clamp(playerRight + 16 - margin, 440, math.max(440, cap)))
-			else
-				width = math.floor(Clamp(UIParent:GetWidth() * 0.36, 440, math.max(440, cap)))
-			end
-		end
-		local bottom = ClearOfBars(margin, margin + width, margin)
-		if not ns.db.sized then
-			local floor = UnitFramesFloor(margin, margin + width, bottom)
-			height = floor and math.max(UNDER_MIN_HEIGHT, floor - 6 - bottom) or autoHeight
-		end
-		frame:SetSize(math.floor(width), math.floor(height))
-		frame:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", margin, bottom)
-		return
-	end
-	-- Beside your character (the default): bottom left like the default chat,
-	-- just above the action bars, stopping short of your character's frame.
+	-- Bottom left like the default chat, just above the action bars,
+	-- stopping short of your character's frame.
 	if not ns.db.sized then
 		width, height = autoWidth, autoHeight
 	end
@@ -430,24 +391,7 @@ local function OpenMenu(owner)
 				ns.ChatReplace:SetEnabled(not ns.db.replaceChat)
 			end)
 			root:CreateButton("Settings...", function() ns.Setup:Show() end)
-			-- Choosing a layout hands placement back to Hear Ye, which keeps it
-			-- fitted as bars and frames change.
-			root:CreateTitle("Place it")
-			local function isLayout(layout)
-				return not ns.db.position and not ns.db.sized and (ns.db.layout or "beside") == layout
-			end
-			local function setLayout(layout)
-				ns.db.layout = layout
-				Shell:ApplyStyle()
-				Shell:ResetPosition()
-			end
-			if root.CreateRadio then
-				root:CreateRadio("Beside my character", isLayout, setLayout, "beside")
-				root:CreateRadio("Under my character", isLayout, setLayout, "under")
-			else
-				root:CreateButton("Beside my character", function() setLayout("beside") end)
-				root:CreateButton("Under my character", function() setLayout("under") end)
-			end
+			root:CreateButton("Reset position", function() Shell:ResetPosition() end)
 		end)
 	else
 		ns.Setup:Show()
@@ -553,27 +497,7 @@ function Shell:Create()
 	end)
 	settingsButton:SetScript("OnLeave", GameTooltip_Hide)
 
-	-- The slim title bar, for Under my character: a thin bronze-bordered
-	-- frame with the title, gear, list button and close button in a strip,
-	-- in place of the portrait window's tall title bar.
 	self.header = header
-	if self.styled then
-		local slim = CreateFrame("Frame", nil, frame, "BackdropTemplate")
-		slim:SetAllPoints()
-		slim:SetFrameLevel(frame:GetFrameLevel())
-		ns.ApplyBackdrop(slim, ns.db.opacity)
-		slim:Hide()
-		self.slimBorder = slim
-		self.slimTitle = header:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-		self.slimTitle:SetText("Hear Ye")
-		self.slimTitle:Hide()
-		local close = frame.CloseButton
-		self.closePoints = {}
-		for i = 1, close:GetNumPoints() do
-			self.closePoints[i] = { close:GetPoint(i) }
-		end
-		self.closeSize = { close:GetSize() }
-	end
 
 	-- The list starts below the portrait, as in Fireside Tales; the
 	-- conversation pane uses the full height beside it.
@@ -673,7 +597,6 @@ function Shell:Create()
 		ns.ChatReplace:Apply()
 	end)
 	frame:SetScript("OnSizeChanged", function()
-		Shell:LayoutSlimList()
 		Shell:Refresh()
 	end)
 
@@ -686,8 +609,8 @@ function Shell:Create()
 	end)
 	ns.Conversations:Init()
 	self:SetLocked(ns.db.locked)
-	-- Every piece exists now: lay them out for the chosen layout.
-	self:ApplyStyle()
+	-- Every piece exists now: lay out the list and the pane.
+	self:ApplySidebar()
 	-- Invisible until the action bars have their places; see Reveal.
 	frame:SetAlpha(0)
 	WatchPlacement()
@@ -718,7 +641,6 @@ local function Pieces()
 	add(art, settingsButton)
 	add(art, Shell.grip)
 	add(art, Shell.listToggle)
-	add(art, Shell.slimTitle)
 	add(art, Shell.chrome.rule)
 	for _, inset in ipairs(Shell.chrome.insets) do
 		add(art, inset.NineSlice)
@@ -737,10 +659,9 @@ local function PaintChrome(amount)
 	for _, piece in ipairs(backgrounds) do
 		piece:SetAlpha(amount * opacity)
 	end
-	local plain = (not Shell.styled) and frame or (Shell:IsSlim() and Shell.slimBorder)
-	if plain then
-		plain:SetBackdropColor(0.06, 0.05, 0.04, amount * opacity)
-		plain:SetBackdropBorderColor(BRONZE[1], BRONZE[2], BRONZE[3], amount)
+	if not Shell.styled then
+		frame:SetBackdropColor(0.06, 0.05, 0.04, amount * opacity)
+		frame:SetBackdropBorderColor(BRONZE[1], BRONZE[2], BRONZE[3], amount)
 	end
 	for _, inset in ipairs(Shell.chrome.insets) do
 		if not inset.Bg and inset.SetBackdropColor then
@@ -876,79 +797,13 @@ function Shell:CreateListToggle()
 	self.listToggle = toggle
 end
 
--- Under my character uses the slim title bar; Beside keeps the full window.
-function Shell:IsSlim()
-	return self.styled and ns.db.layout == "under"
-end
-
--- Where the conversation pane and the list start, below the title bar.
-function Shell:PaneTop()
-	if self:IsSlim() then
-		return -24
-	end
-	return self.styled and -28 or -HEADER_HEIGHT - 4
-end
-
-function Shell:ListTop()
-	if self:IsSlim() then
-		return -24
-	end
-	return self.styled and -60 or -HEADER_HEIGHT - 4
-end
-
-function Shell:ApplyStyle()
-	local slim = self:IsSlim()
-	if self.styled then
-		for _, piece in ipairs({ frame.NineSlice, frame.PortraitContainer or frame.portrait, frame.TitleContainer, frame.Bg, frame.TopTileStreaks }) do
-			if piece and piece.SetShown then
-				piece:SetShown(not slim)
-			end
-		end
-		self.slimBorder:SetShown(slim)
-		self.slimTitle:SetShown(slim)
-		local close = frame.CloseButton
-		close:ClearAllPoints()
-		if slim then
-			close:SetSize(22, 22)
-			close:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 0, 0)
-		else
-			close:SetSize(self.closeSize[1], self.closeSize[2])
-			for _, p in ipairs(self.closePoints) do
-				close:SetPoint(p[1], p[2], p[3], p[4], p[5])
-			end
-		end
-	end
-	-- Slim: no conversation name row; the list and the "To ..." hint
-	-- already say where you are, and the room goes to messages.
-	self.paneHeader:SetShown(not slim)
-	self.chrome.rule:SetShown(not slim)
-	self.paneFrame:ClearAllPoints()
-	self.paneFrame:SetPoint("TOPLEFT", 8, slim and -4 or -30)
-	self.paneFrame:SetPoint("BOTTOMRIGHT", -6, 4)
-	self:ApplySidebar()
-	self:LayoutSlimList()
-	if shownAmount then
-		Shell.PaintChrome(shownAmount)
-	end
-end
-
--- The list's place: below the title bar, down to the bottom of the window.
-function Shell:LayoutSlimList()
-	if not (frame and sidebar) then
-		return
-	end
-	sidebar:ClearAllPoints()
-	sidebar:SetPoint("TOPLEFT", 8, self:ListTop())
-	sidebar:SetPoint("BOTTOMLEFT", 8, 6)
-end
-
 -- "Hidden" keeps the list as a narrow strip: each conversation's coloured
 -- square and its unread pill, with the name in its tooltip. The pane gets
 -- the room the names took.
 function Shell:ApplySidebar()
 	local compact = ns.db.sidebarHidden
 	local toggle = self.listToggle
-	local top = self:PaneTop()
+	local top = self.styled and -28 or -HEADER_HEIGHT - 4
 	sidebar:SetWidth(compact and COMPACT_WIDTH or SIDEBAR_WIDTH)
 	inputArea:ClearAllPoints()
 	inputArea:SetPoint("BOTTOMLEFT", sidebar, "BOTTOMRIGHT", 4, 0)
@@ -959,31 +814,12 @@ function Shell:ApplySidebar()
 	self.paneInset:SetPoint("BOTTOMRIGHT", inputArea, "TOPRIGHT", 0, 2)
 	-- The button stays in one spot beside the portrait, so a second click
 	-- in the same place switches back.
-	local header = self.header
-	header:ClearAllPoints()
-	if self:IsSlim() then
-		header:SetPoint("TOPLEFT", frame, "TOPLEFT", 4, -3)
-		header:SetPoint("TOPRIGHT", -22, -3)
-		header:SetHeight(18)
-		self.slimTitle:ClearAllPoints()
-		self.slimTitle:SetPoint("LEFT", header, "LEFT", 46, 0)
-	else
-		header:SetPoint("TOPLEFT", 56, -1) -- the gear sits over its left end
-		header:SetPoint("TOPRIGHT", -46, -1)
-		header:SetHeight(HEADER_HEIGHT)
-	end
 	toggle:ClearAllPoints()
-	if self:IsSlim() then
-		toggle:SetSize(18, 18)
-		toggle:SetPoint("LEFT", header, "LEFT", 22, 0)
-	else
-		toggle:SetSize(24, 24)
-		toggle:SetPoint("TOPLEFT", frame, "TOPLEFT", self.styled and 58 or 6, self.styled and -31 or -HEADER_HEIGHT)
-	end
+	toggle:SetPoint("TOPLEFT", frame, "TOPLEFT", self.styled and 58 or 6, self.styled and -31 or -HEADER_HEIGHT)
 	local arrow = compact and "NextPage" or "PrevPage"
 	toggle:SetNormalTexture("Interface\\Buttons\\UI-SpellbookIcon-" .. arrow .. "-Up")
 	toggle:SetPushedTexture("Interface\\Buttons\\UI-SpellbookIcon-" .. arrow .. "-Down")
-	toggle.label:SetText((compact or self:IsSlim()) and "" or "Conversations")
+	toggle.label:SetText(compact and "" or "Conversations")
 end
 
 function Shell:IsActive()

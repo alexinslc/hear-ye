@@ -3,7 +3,7 @@ local addonName, ns = ...
 _G.HearYe = ns
 
 ns.name = addonName
-ns.SCHEMA = 5
+ns.SCHEMA = 6
 
 -- Plain values; each is checked by type on load, so a damaged or old saved
 -- file falls back to the default instead of breaking the window.
@@ -22,7 +22,6 @@ local defaults = {
 	groupSound = "none", -- a sound for new party, raid and guild messages
 	sidebarHidden = false, -- the conversation list, as a compact strip
 	sized = false, -- true once you've resized the window yourself
-	layout = "beside", -- automatic placement: "beside" or "under" your character
 }
 
 -- Saved history is just enough to carry over a reload or a quick relog:
@@ -42,6 +41,10 @@ local MIGRATIONS = {
 	[1] = function(db)
 		-- Schema 1 (Phases 1-3) had no saved history or settings.
 		db.characters = {}
+	end,
+	[5] = function(db)
+		-- The "Under my character" layout was removed.
+		db.layout = nil
 	end,
 	[4] = function(db)
 		-- History limits went from 7 days and 500 lines to 1 day and 50.
@@ -95,9 +98,6 @@ local function ApplyDefaults(db)
 	db.height = Clamp(db.height, 200, 800, defaults.height)
 	db.fontSize = Clamp(db.fontSize, 0, 24, 0)
 	db.opacity = Clamp(db.opacity, 0, 1, defaults.opacity)
-	if db.layout ~= "beside" and db.layout ~= "under" then
-		db.layout = defaults.layout
-	end
 
 	db.characters = type(db.characters) == "table" and db.characters or {}
 	-- Sidebar sections you've closed, by key ("chat", "whispers").
