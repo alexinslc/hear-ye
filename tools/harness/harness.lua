@@ -224,7 +224,7 @@ local function Boot(savedDB, opts)
 		SlashCmdList = {},
 		StaticPopupDialogs = {},
 		StaticPopup_Show = function(which) S.popup = which end,
-		SetItemRef = function() end,
+		SetItemRef = function(link, text, button, source) S.itemRef = { link = link, button = button, source = source } end,
 		PlaySound = function() end,
 		SOUNDKIT = {},
 		YES = "Yes", NO = "No", DONE = "Done",
@@ -235,6 +235,7 @@ local function Boot(savedDB, opts)
 		Constants = { ChatFrameConstants = { MaxChatChannels = 20 } },
 		EventRegistry = {
 			RegisterCallback = function(_, name, fn) S.callbacks[name] = fn end,
+			TriggerEvent = function(_, name) S.triggered = name end,
 		},
 		C_Timer = { After = function(_, fn) S.timers[#S.timers + 1] = fn end },
 		C_ChatInfo = {
@@ -279,7 +280,7 @@ local function Boot(savedDB, opts)
 		IsInGroup = function() return S.inGroup end,
 		IsInRaid = function() return false end,
 		IsInGuild = function() return S.inGuild end,
-		GetGuildInfo = function() return nil end,
+		GetGuildInfo = function() return S.inGuild and S.guildName or nil end,
 		GetNumGroupMembers = function() return 0 end,
 		GetNumGuildMembers = function() return 0 end,
 		InCombatLockdown = function() return false end,
@@ -447,6 +448,18 @@ section("The window", function()
 	Shell:Refresh()
 end)
 
+section("Clicking links", function()
+	local S = first
+	local pane = S.ns.Messages.frame
+	local click = pane:GetScript("OnHyperlinkClick")
+	click(pane, "player:Brana Tester-Forever:41:WHISPER", "[Brana]", "LeftButton")
+	check("a left-click goes to the default chat frame", S.itemRef and S.itemRef.source == S.env.DEFAULT_CHAT_FRAME)
+	check("a click is announced like the default chat's", S.triggered == "ChatFrame.OnHyperlinkClick")
+	click(pane, "player:Brana Tester-Forever:41:WHISPER", "[Brana]", "RightButton")
+	check("a right-click's menu belongs to the visible pane", S.itemRef and S.itemRef.source == pane)
+	check("the pane offers the chat box to the menu", pane.editBox ~= nil)
+end)
+
 section("Saving on logout", function()
 	local db = first.logout()
 	local key = "Player-1-00000001"
@@ -493,6 +506,45 @@ section("A broken load doesn't wipe history", function()
 	local count = 0
 	for _, conv in pairs(saved and saved.convs or {}) do count = count + #conv.lines end
 	check("the saved history is still there", count >= 3, count)
+end)
+
+section("A reload keeps the guild session", function()
+	local S = Boot(nil)
+	S.inGuild, S.guildName = true, "Hearth Wardens"
+	S.login()
+	S.runTimers()
+	S.chatEvent("CHAT_MSG_GUILD", "evening all", "Brana Tester-Forever", { guid = "Player-1-00000002" })
+	local db = S.logout()
+
+	-- Reload: the guild isn't known for a moment, as on the live client.
+	local R = Boot(db)
+	R.inGuild = false
+	R.login()
+	local ready = table.remove(R.timers, 1)
+	ready()
+	local function earlier()
+		for _, c in ipairs(R.ns.Conversations:Sorted()) do
+			if c.archiveOf == "guild" then return c end
+		end
+	end
+	check("no Former guild row before the guild is known", earlier() == nil)
+	R.inGuild, R.guildName = true, "Hearth Wardens"
+	R.fire("PLAYER_GUILD_UPDATE")
+	check("no Former guild row once it's the same guild", earlier() == nil)
+	check("the guild row keeps its history", hasLine(R.ns.Conversations:Get("guild"), "evening all"))
+
+	-- A different guild after the reload does end the old session.
+	local db2 = R.logout()
+	local D = Boot(db2)
+	D.inGuild, D.guildName = true, "Other Guild"
+	D.login()
+	table.remove(D.timers, 1)()
+	check("a different guild ends the old session", earlier and (function()
+		for _, c in ipairs(D.ns.Conversations:Sorted()) do
+			if c.archiveOf == "guild" then return true end
+		end
+		return false
+	end)())
 end)
 
 section("Old and damaged saved files", function()

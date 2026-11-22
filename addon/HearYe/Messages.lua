@@ -506,11 +506,36 @@ function Messages:Init()
 		end
 		UpdateNewIndicator()
 	end)
-	-- Links go through the same handler the default chat uses. DEFAULT_CHAT_FRAME
-	-- is passed as the source frame because the handlers expect a real chat
-	-- frame (left-clicking a name opens a whisper in its edit box).
-	smf:SetScript("OnHyperlinkClick", function(_, link, text, button)
-		SetItemRef(link, text, button, DEFAULT_CHAT_FRAME)
+	-- Catch clicks on the pane, so a right-click on a name doesn't fall
+	-- through to the world and turn the camera.
+	smf:EnableMouse(true)
+	-- Links go through the same handler the default chat uses. Left-clicks
+	-- pass DEFAULT_CHAT_FRAME, because opening a whisper wants a real chat
+	-- frame's edit box. Right-clicks pass this pane: the player menu is owned
+	-- by the frame it came from, and the default chat may be hidden while
+	-- Hear Ye replaces it, which would leave the menu with nowhere to show.
+	smf:SetScript("OnHyperlinkClick", function(self, link, text, button)
+		-- The same event the default chat sends, so addons that act on
+		-- chat links (tooltips, link helpers) work here too.
+		if EventRegistry then
+			EventRegistry:TriggerEvent("ChatFrame.OnHyperlinkClick", self, link, text, button)
+		end
+		if button == "RightButton" then
+			self.editBox = ns.Input:GetAdopted() or (DEFAULT_CHAT_FRAME and DEFAULT_CHAT_FRAME.editBox)
+			SetItemRef(link, text, button, self)
+		else
+			SetItemRef(link, text, button, DEFAULT_CHAT_FRAME)
+		end
+	end)
+	smf:SetScript("OnHyperlinkEnter", function(self, ...)
+		if EventRegistry then
+			EventRegistry:TriggerEvent("ChatFrame.OnHyperlinkEnter", self, ...)
+		end
+	end)
+	smf:SetScript("OnHyperlinkLeave", function(self)
+		if EventRegistry then
+			EventRegistry:TriggerEvent("ChatFrame.OnHyperlinkLeave", self)
+		end
 	end)
 	self.frame = smf
 	self:ApplyFont()

@@ -149,16 +149,35 @@ function Conversations:ReconcileGroups()
 				conv = CreateGroup(key)
 			end
 			-- A group restored from last session: keep it only if it's the same
-			-- group (someone from it is still with you), as after a /reload.
+			-- group, as after a /reload. A party is the same if someone from it
+			-- is still with you; a guild if it has the same name.
 			if conv and conv.pendingSession and Conversations.ready then
-				conv.pendingSession = nil
-				if now and group.session and conv.members and not Conversations:SharesMembers(conv.members) and #conv.lines > 0 then
+				local different
+				if key == "guild" then
+					-- Guild data can take a while after loading. Until the game
+					-- says which guild you're in, don't decide.
+					local name = now and GetGuildInfo and GetGuildInfo("player")
+					if name then
+						different = conv.guildName ~= nil and conv.guildName ~= name
+						conv.guildName = name
+						conv.pendingSession = nil
+					elseif Conversations.settled then
+						conv.pendingSession = nil
+					end
+				else
+					conv.pendingSession = nil
+					different = now and conv.members and not Conversations:SharesMembers(conv.members)
+				end
+				if different and group.session and #conv.lines > 0 then
 					Archive(conv)
 					conv = CreateGroup(key)
 				end
 			end
-			-- Until then, leave a restored group alone rather than end it early.
-			if conv and not (conv.pendingSession and not Conversations.ready) then
+			if key == "guild" and conv and now and not conv.pendingSession and GetGuildInfo then
+				conv.guildName = GetGuildInfo("player") or conv.guildName
+			end
+			-- Until that's decided, leave a restored group alone rather than end it early.
+			if conv and not conv.pendingSession then
 				if conv.wasAvailable and not now and group.session and #conv.lines > 0 then
 					Archive(conv)
 				elseif conv.wasAvailable and not now and group.session then
@@ -532,6 +551,7 @@ end
 local SAVED_FIELDS = {
 	"label", "fullName", "chatType", "tellTarget", "battleTag", "sort", "group", "archiveOf", "readOnly",
 	"zoneChannelID", "className", "classFile", "level", "levelSource", "draft", "unread", "quiet", "members",
+	"guildName",
 }
 
 -- The character's GUID: names alone aren't unique here (the realm name can
@@ -591,7 +611,11 @@ function Conversations:Save()
 		for _, field in ipairs(SAVED_FIELDS) do
 			saved[field] = conv[field]
 		end
-		if conv.group and conv.chatType and conv.available and conv.available() then
+		if conv.group == "guild" and conv.available and conv.available() then
+			-- A guild is known by its name; party members say nothing about it.
+			saved.members = nil
+			saved.guildName = (GetGuildInfo and GetGuildInfo("player")) or conv.guildName
+		elseif conv.group and conv.chatType and conv.available and conv.available() then
 			saved.members = GroupMembers()
 		end
 		saved.lines = {}
@@ -698,6 +722,12 @@ function Conversations:Init()
 			Conversations.ready = true
 			Conversations:ReconcileGroups()
 			ns.Input:PointAtSelected()
+			ns.Shell:Refresh()
+		end)
+		-- If the game still hasn't said you're in a guild by now, you aren't.
+		C_Timer.After(30, function()
+			Conversations.settled = true
+			Conversations:ReconcileGroups()
 			ns.Shell:Refresh()
 		end)
 	end

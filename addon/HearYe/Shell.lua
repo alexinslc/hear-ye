@@ -314,7 +314,16 @@ function Shell:Create()
 	settingsButton = CreateFrame("Button", nil, frame)
 	settingsButton:SetSize(15, 15)
 	settingsButton:SetPoint("RIGHT", header, "RIGHT", 18, 0)
-	settingsButton:SetFrameLevel(header:GetFrameLevel() + 2)
+	-- Above the window's border and title art, which sit high in the
+	-- template and would otherwise hide the gear and swallow its clicks.
+	local top = frame:GetFrameLevel()
+	for _, piece in ipairs({ frame.NineSlice, frame.TitleContainer, frame.PortraitContainer }) do
+		if piece and piece.GetFrameLevel then
+			top = math.max(top, piece:GetFrameLevel())
+		end
+	end
+	header:SetFrameLevel(top + 1)
+	settingsButton:SetFrameLevel(top + 3)
 	local gear = settingsButton:CreateTexture(nil, "ARTWORK")
 	gear:SetAllPoints()
 	if C_Texture and C_Texture.GetAtlasInfo and C_Texture.GetAtlasInfo("QuestLog-icon-setting") then
