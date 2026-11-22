@@ -578,6 +578,21 @@ function Shell:Create()
 	-- The list starts below the portrait, as in Fireside Tales; the
 	-- conversation pane uses the full height beside it.
 	sidebar = ns.NewInset(frame)
+	sidebar:EnableMouseWheel(true)
+	sidebar:SetScript("OnMouseWheel", function(_, delta)
+		local offset = Shell.listOffset or 0
+		if delta < 0 and Shell.listMore then
+			Shell.listOffset = offset + 1
+		elseif delta > 0 and offset > 0 then
+			Shell.listOffset = offset - 1
+		end
+		Shell:Refresh()
+	end)
+	-- Says there's more below when the list doesn't fit.
+	self.moreText = sidebar:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+	self.moreText:SetPoint("BOTTOMRIGHT", sidebar, "BOTTOMRIGHT", -6, 4)
+	self.moreText:SetText("more...")
+	self.moreText:Hide()
 	sidebar:SetPoint("TOPLEFT", 8, self.styled and -60 or -HEADER_HEIGHT - 4)
 	sidebar:SetPoint("BOTTOMLEFT", 8, 6)
 	sidebar:SetWidth(SIDEBAR_WIDTH)
@@ -764,8 +779,7 @@ end
 -- Hovering counts only when Hear Ye is what's under the pointer. A quest
 -- window, the map or anything else drawn on top of it doesn't wake it.
 local function Hovered()
-	-- In the slim layout the list rises above the window, so it counts too.
-	if not frame:IsMouseOver() and not (sidebar and sidebar:IsShown() and sidebar:IsMouseOver()) then
+	if not frame:IsMouseOver() then
 		return false
 	end
 	local ok, focus = pcall(MouseFocus)
@@ -918,22 +932,14 @@ function Shell:ApplyStyle()
 	end
 end
 
--- The list's place. In the slim layout it's a tall column on the left that
--- rises above the short window, into the space beside your character, so
--- every conversation still fits; the strip with the gear and title sits
--- over the messages instead.
+-- The list's place: below the title bar, down to the bottom of the window.
 function Shell:LayoutSlimList()
 	if not (frame and sidebar) then
 		return
 	end
 	sidebar:ClearAllPoints()
+	sidebar:SetPoint("TOPLEFT", 8, self:ListTop())
 	sidebar:SetPoint("BOTTOMLEFT", 8, 6)
-	if self:IsSlim() then
-		local tall = math.floor(math.min(math.max(UIParent:GetHeight() * 0.42, 260), 480)) - 12
-		sidebar:SetHeight(math.max(frame:GetHeight() - 12, tall))
-	else
-		sidebar:SetPoint("TOPLEFT", 8, self:ListTop())
-	end
 end
 
 -- "Hidden" keeps the list as a narrow strip: each conversation's coloured
@@ -956,8 +962,7 @@ function Shell:ApplySidebar()
 	local header = self.header
 	header:ClearAllPoints()
 	if self:IsSlim() then
-		-- The strip starts past the list column, over the messages.
-		header:SetPoint("TOPLEFT", frame, "TOPLEFT", 8 + sidebar:GetWidth() + 4, -3)
+		header:SetPoint("TOPLEFT", frame, "TOPLEFT", 4, -3)
 		header:SetPoint("TOPRIGHT", -22, -3)
 		header:SetHeight(18)
 		self.slimTitle:ClearAllPoints()
@@ -1128,9 +1133,13 @@ function Shell:Refresh()
 		end
 	end
 
+	-- When the list is too short for every row, the mouse wheel scrolls it:
+	-- listOffset rows and headers are skipped from the top.
+	local skip = self.listOffset or 0
 	local full = false
 	for _, group in ipairs(order) do
 		if full or -y + SECTION_HEIGHT > bottom then
+			full = true
 			break
 		end
 		-- The strip has no headers or closed sections; a small gap
@@ -1141,6 +1150,8 @@ function Shell:Refresh()
 				y = y - 6
 			end
 			sectionCount = sectionCount + 1
+		elseif skip > 0 then
+			skip = skip - 1
 		else
 			sectionCount = sectionCount + 1
 			local section = sections[sectionCount] or CreateSection(sectionCount)
@@ -1166,59 +1177,72 @@ function Shell:Refresh()
 				full = true
 				break
 			end
-			local available = C:IsAvailable(conv)
-			local sendable = conv.chatType ~= nil and not conv.readOnly
-			rowCount = rowCount + 1
-			local row = rows[rowCount] or CreateRow(rowCount)
-			row:ClearAllPoints()
-			row:SetPoint("TOPLEFT", sidebar, "TOPLEFT", 4, y)
-			row:SetPoint("RIGHT", sidebar, "RIGHT", -4, 0)
-			y = y - ROW_HEIGHT
-			row.conv = conv
+			if skip > 0 then
+				skip = skip - 1
+			else
+				local available = C:IsAvailable(conv)
+				local sendable = conv.chatType ~= nil and not conv.readOnly
+				rowCount = rowCount + 1
+				local row = rows[rowCount] or CreateRow(rowCount)
+				row:ClearAllPoints()
+				row:SetPoint("TOPLEFT", sidebar, "TOPLEFT", 4, y)
+				row:SetPoint("RIGHT", sidebar, "RIGHT", -4, 0)
+				y = y - ROW_HEIGHT
+				row.conv = conv
 
-			local selected = conv.key == C.selectedKey
-			local label = conv.label
-			if labelCount[label] and labelCount[label] > 1 and conv.fullName then
-				label = conv.fullName
-			end
-			row.label:SetText(compact and "" or label)
-			row.dot:ClearAllPoints()
-			row.dot:SetPoint("LEFT", row, "LEFT", 16, 0)
-			row.dot:SetShown(not compact)
-			row.tag:SetText(compact and ShortTag(conv) or "")
-			if (sendable and not available) or conv.readOnly then
-				row.label:SetTextColor(0.5, 0.5, 0.5)
-			elseif selected then
-				row.label:SetTextColor(1, 0.82, 0)
-			else
-				row.label:SetTextColor(0.9, 0.9, 0.9)
-			end
-			row.selected:SetShown(selected)
-			local dot = DotColor(conv)
-			local dim = (conv.readOnly or (sendable and not available)) and 0.5 or 1
-			row.dot:SetVertexColor(dot.r, dot.g, dot.b, dim)
-			if selected then
-				row.tag:SetTextColor(1, 0.82, 0)
-			else
-				row.tag:SetTextColor(dot.r, dot.g, dot.b, dim)
-			end
-			if conv.chatType == "WHISPER" and not compact then
-				row.level:SetText(conv.level and tostring(conv.level) or "-")
-			else
-				row.level:SetText("")
-			end
+				local selected = conv.key == C.selectedKey
+				local label = conv.label
+				if labelCount[label] and labelCount[label] > 1 and conv.fullName then
+					label = conv.fullName
+				end
+				row.label:SetText(compact and "" or label)
+				row.dot:ClearAllPoints()
+				row.dot:SetPoint("LEFT", row, "LEFT", 16, 0)
+				row.dot:SetShown(not compact)
+				row.tag:SetText(compact and ShortTag(conv) or "")
+				if (sendable and not available) or conv.readOnly then
+					row.label:SetTextColor(0.5, 0.5, 0.5)
+				elseif selected then
+					row.label:SetTextColor(1, 0.82, 0)
+				else
+					row.label:SetTextColor(0.9, 0.9, 0.9)
+				end
+				row.selected:SetShown(selected)
+				local dot = DotColor(conv)
+				local dim = (conv.readOnly or (sendable and not available)) and 0.5 or 1
+				row.dot:SetVertexColor(dot.r, dot.g, dot.b, dim)
+				if selected then
+					row.tag:SetTextColor(1, 0.82, 0)
+				else
+					row.tag:SetTextColor(dot.r, dot.g, dot.b, dim)
+				end
+				if conv.chatType == "WHISPER" and not compact then
+					row.level:SetText(conv.level and tostring(conv.level) or "-")
+				else
+					row.level:SetText("")
+				end
 
-			-- Busy public channels stay low-key, on a grey pill.
-			row.pill:SetCount(conv.unread, conv.quiet)
-			-- The level sits beside the pill, or at the edge when there isn't one.
-			row.level:ClearAllPoints()
-			if row.pill:IsShown() then
-				row.level:SetPoint("RIGHT", row.pill, "LEFT", -4, 0)
-			else
-				row.level:SetPoint("RIGHT", row, "RIGHT", -6, 0)
+				-- Busy public channels stay low-key, on a grey pill.
+				row.pill:SetCount(conv.unread, conv.quiet)
+				-- The level sits beside the pill, or at the edge when there isn't one.
+				row.level:ClearAllPoints()
+				if row.pill:IsShown() then
+					row.level:SetPoint("RIGHT", row.pill, "LEFT", -4, 0)
+				else
+					row.level:SetPoint("RIGHT", row, "RIGHT", -6, 0)
+				end
+				row:Show()
 			end
-			row:Show()
 		end
+	end
+	self.listMore = full
+	if self.moreText then
+		self.moreText:SetShown(full)
+	end
+	-- Scrolled past everything (rows went away): step back.
+	if (self.listOffset or 0) > 0 and rowCount == 0 and sectionCount == 0 then
+		self.listOffset = self.listOffset - 1
+		return self:Refresh()
 	end
 	for i = rowCount + 1, #rows do
 		rows[i]:Hide()

@@ -455,7 +455,7 @@ section("Placement", function()
 	local shell = S.ns.Shell
 	check("under my character uses the slim title bar", shell:IsSlim() and shell.slimBorder:IsShown() and not shell.frame.NineSlice:IsShown())
 	check("the slim layout drops the conversation name row", not shell.paneHeader:IsShown())
-	check("the list is a tall column above the short window", shell.sidebar:GetHeight() > shell.frame:GetHeight(), shell.sidebar:GetHeight() .. " vs " .. shell.frame:GetHeight())
+
 	S.ns.db.layout = "beside"
 	shell:ApplyStyle()
 	check("beside my character brings back the full title bar", not shell.slimBorder:IsShown() and shell.frame.NineSlice:IsShown() and shell:ListTop() == -60)
@@ -536,6 +536,21 @@ section("Hiding the conversation list", function()
 	check("the button carries no total in the strip", not Shell.listToggle.pill:IsShown())
 	Shell.listToggle:GetScript("OnClick")()
 	check("the names come back", S.ns.db.sidebarHidden == false and Shell.sidebar:GetWidth() == 150)
+	Shell.sidebar._h = 0
+end)
+
+section("Scrolling the list", function()
+	local S = first
+	local Shell = S.ns.Shell
+	Shell.sidebar._h = 70 -- room for a header and a couple of rows
+	Shell:Refresh()
+	check("a list that doesn't fit says there's more", Shell.listMore == true and Shell.moreText:IsShown())
+	local wheel = Shell.sidebar:GetScript("OnMouseWheel")
+	wheel(Shell.sidebar, -1)
+	check("the wheel scrolls it down", Shell.listOffset == 1)
+	wheel(Shell.sidebar, 1)
+	wheel(Shell.sidebar, 1)
+	check("and back up, no further than the top", Shell.listOffset == 0)
 	Shell.sidebar._h = 0
 end)
 
