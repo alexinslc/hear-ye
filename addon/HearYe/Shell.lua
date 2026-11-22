@@ -652,12 +652,50 @@ local FADE_SECONDS = 0.3
 local FADE_DELAY = 1.5
 local lastHover = 0
 
+-- The frame under the pointer, if the client says.
+local function MouseFocus()
+	if GetMouseFoci then
+		local foci = GetMouseFoci()
+		return foci and foci[1]
+	elseif GetMouseFocus then
+		return GetMouseFocus()
+	end
+end
+
+local function IsHearYe(region)
+	while region do
+		if region == frame then
+			return true
+		end
+		if region.IsForbidden and region:IsForbidden() then
+			return false
+		end
+		region = region.GetParent and region:GetParent()
+	end
+	return false
+end
+
+-- Hovering counts only when Hear Ye is what's under the pointer. A quest
+-- window, the map or anything else drawn on top of it doesn't wake it.
+local function Hovered()
+	if not frame:IsMouseOver() then
+		return false
+	end
+	local ok, focus = pcall(MouseFocus)
+	if not ok or not focus or focus == WorldFrame then
+		-- Over Hear Ye's own background, which doesn't take the mouse.
+		return true
+	end
+	local inside, result = pcall(IsHearYe, focus)
+	return inside and result
+end
+
 local function TargetAmount()
 	if not ns.db.fadeBackground then
 		return 1
 	end
 	local now = GetTime()
-	if Shell.typing or frame:IsMouseOver() then
+	if Shell.typing or Hovered() then
 		lastHover = now
 	end
 	if now - lastHover < FADE_DELAY then

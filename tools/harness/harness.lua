@@ -263,6 +263,7 @@ local function Boot(savedDB, opts)
 		GetCVar = function(name) return name == "chatStyle" and "im" or nil end,
 		GetCVarBool = function() return false end,
 		GetTime = function() return S.now end,
+		GetMouseFoci = function() return { S.mouseFocus } end,
 		time = function() return S.now end,
 		date = function(fmt, t) return os.date(fmt, t or S.now) end,
 		UnitGUID = function(unit) if unit == "player" then return guid end end,
@@ -514,6 +515,24 @@ section("Game replies count as unread", function()
 	check("a system line counts as unread in Game", game.unread == before + 1, game.unread)
 	S.env.ChatFrame1:AddMessage("|cffd9b36cHear Ye|r: Hidden.", 1, 1, 1)
 	check("Hear Ye's own lines don't", game.unread == before + 1, game.unread)
+end)
+
+section("Hovering", function()
+	local S = first
+	local Shell = S.ns.Shell
+	local frame = Shell.frame
+	frame.IsMouseOver = function() return true end
+	local function settle()
+		S.now = S.now + 10
+		for _ = 1, 5 do Shell.OnFadeUpdate(frame, 1) end
+		return Shell:DescribeChrome()
+	end
+	S.mouseFocus = { GetParent = function() return nil end } -- a quest window on top
+	check("a window on top of Hear Ye doesn't wake it", settle():find("shown 0%%") ~= nil, Shell:DescribeChrome())
+	S.mouseFocus = Shell.pane
+	check("hovering Hear Ye itself does", settle():find("shown 100%%") ~= nil, Shell:DescribeChrome())
+	S.mouseFocus = nil
+	frame.IsMouseOver = nil
 end)
 
 section("Clicking links", function()
