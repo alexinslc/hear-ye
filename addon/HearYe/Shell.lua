@@ -7,7 +7,7 @@ local Shell = {}
 ns.Shell = Shell
 
 local SIDEBAR_WIDTH = 150
-local COMPACT_WIDTH = 58 -- the list as a strip of markers and unread pills
+local COMPACT_WIDTH = 82 -- the list as a strip of short names and unread pills
 local HEADER_HEIGHT = 22
 local INPUT_HEIGHT = 30
 local ROW_HEIGHT = 18
@@ -48,18 +48,34 @@ function ns.NewInset(parent)
 	return inset
 end
 
-local function SavePosition()
+-- Moving the window keeps your spot; resizing it keeps your size. Until you
+-- do either, Hear Ye places and sizes itself for your screen.
+local function SavePosition(resized)
 	local point, _, relativePoint, x, y = frame:GetPoint(1)
 	ns.db.position = { point, relativePoint, x, y }
-	ns.db.width, ns.db.height = frame:GetSize()
+	if resized then
+		ns.db.width, ns.db.height = frame:GetSize()
+		ns.db.sized = true
+	end
 end
 
 -- Bars that sit low on the screen. Hear Ye is drawn under everything, so
--- its first placement keeps clear of any of these it would overlap.
+-- it sits above whichever of these are under it.
 local LOW_BARS = {
 	"MainActionBar", "MainMenuBar", "MultiBarBottomLeft", "MultiBarBottomRight",
 	"StanceBar", "StanceBarFrame", "PetActionBar", "PossessActionBar", "PossessBarFrame",
 }
+
+local function Clamp(value, low, high)
+	return math.min(high, math.max(low, value))
+end
+
+-- A size in proportion to the screen, the same share of it at 1080p, 1440p,
+-- 4K or ultrawide, and at any UI scale.
+local function AutoSize()
+	local w, h = UIParent:GetWidth(), UIParent:GetHeight()
+	return math.floor(Clamp(w * 0.36, 440, 700)), math.floor(Clamp(h * 0.42, 260, 480))
+end
 
 -- The lowest a window from left to right can sit without covering a bar.
 local function ClearOfBars(left, right, bottom)
@@ -70,35 +86,87 @@ local function ClearOfBars(left, right, bottom)
 			local scale = bar:GetEffectiveScale() / uiScale
 			local barLeft, barRight, barTop = bar:GetLeft() * scale, bar:GetRight() * scale, bar:GetTop() * scale
 			if barRight > left and barLeft < right and barTop > bottom then
-				bottom = barTop + 4
+				bottom = barTop + 6
 			end
 		end
 	end
 	return bottom
 end
 
--- First placement: where the default chat window sits, nudged up above any
--- action, stance or aura bar underneath it.
-local function DefaultPosition()
-	local chat = ChatFrame1
-	local x, y = 32, 96
-	if chat and chat:GetLeft() and chat:GetBottom() then
-		local scale = chat:GetEffectiveScale() / UIParent:GetEffectiveScale()
-		x, y = chat:GetLeft() * scale - 6, chat:GetBottom() * scale - 34
+local function ApplyPosition()
+	local width, height = ns.db.width, ns.db.height
+	if not ns.db.sized then
+		width, height = AutoSize()
 	end
-	y = ClearOfBars(x, x + (ns.db.width or 500), y)
-	return "BOTTOMLEFT", "BOTTOMLEFT", x, y
+	frame:ClearAllPoints()
+	frame:SetSize(width, height)
+	local pos = ns.db.position
+	if pos then
+		frame:SetPoint(pos[1], UIParent, pos[2], pos[3], pos[4])
+	else
+		-- Bottom left, like the default chat, just above the action bars.
+		local margin = math.floor(Clamp(UIParent:GetWidth() * 0.012, 10, 32))
+		local bottom = ClearOfBars(margin, margin + width, margin)
+		frame:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", margin, bottom)
+	end
 end
 
-local function ApplyPosition()
-	frame:ClearAllPoints()
-	local pos = ns.db.position
-	if not pos then
-		local point, relativePoint, x, y = DefaultPosition()
-		pos = { point, relativePoint, math.max(0, x), math.max(0, y) }
+-- Placing itself: the bars only take their Edit Mode spots a moment after
+-- login, so the window stays invisible until they have, then appears in
+-- place instead of jumping there. Later changes (a new stance bar, a pet
+-- bar, a different resolution or UI scale) move it along.
+local placer = CreateFrame("Frame")
+local revealed = false
+
+local function Reveal()
+	if not revealed and frame then
+		revealed = true
+		ApplyPosition()
+		frame:SetAlpha(1)
 	end
-	frame:SetPoint(pos[1], UIParent, pos[2], pos[3], pos[4])
-	frame:SetSize(ns.db.width, ns.db.height)
+end
+
+local function Replace()
+	if frame and (not ns.db.position or not ns.db.sized) then
+		ApplyPosition()
+	end
+end
+
+placer:SetScript("OnEvent", function(_, event)
+	if event == "EDIT_MODE_LAYOUTS_UPDATED" then
+		-- Bars are in their places now.
+		if C_Timer then
+			C_Timer.After(0, function()
+				Reveal()
+				Replace()
+			end)
+		else
+			Reveal()
+		end
+	elseif event == "PLAYER_ENTERING_WORLD" then
+		-- In case the layout event never comes, don't stay invisible.
+		if C_Timer then
+			C_Timer.After(1.5, Reveal)
+		else
+			Reveal()
+		end
+	elseif revealed and C_Timer then
+		C_Timer.After(0, Replace)
+	end
+end)
+
+local function WatchPlacement()
+	for _, event in ipairs({ "EDIT_MODE_LAYOUTS_UPDATED", "PLAYER_ENTERING_WORLD", "UI_SCALE_CHANGED",
+		"DISPLAY_SIZE_CHANGED", "UPDATE_SHAPESHIFT_FORMS", "PET_BAR_UPDATE", "UPDATE_BONUS_ACTIONBAR" }) do
+		pcall(placer.RegisterEvent, placer, event)
+	end
+	for _, name in ipairs(LOW_BARS) do
+		local bar = _G[name]
+		if bar and bar.HookScript then
+			bar:HookScript("OnShow", function() if revealed and C_Timer then C_Timer.After(0, Replace) end end)
+			bar:HookScript("OnHide", function() if revealed and C_Timer then C_Timer.After(0, Replace) end end)
+		end
+	end
 end
 
 local function ShowRowTooltip(row)
@@ -212,6 +280,12 @@ local function CreateRow(index)
 	row.label:SetPoint("RIGHT", row.level, "LEFT", -4, 0)
 	row.label:SetJustifyH("LEFT")
 	row.label:SetWordWrap(false)
+	-- In the compact strip: a short name in the conversation's colour.
+	row.tag = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+	row.tag:SetPoint("LEFT", row, "LEFT", 4, 0)
+	row.tag:SetWidth(38)
+	row.tag:SetJustifyH("LEFT")
+	row.tag:SetWordWrap(false)
 
 	row:SetScript("OnClick", function(self)
 		if self.conv then
@@ -439,7 +513,7 @@ function Shell:Create()
 	end)
 	grip:SetScript("OnMouseUp", function()
 		frame:StopMovingOrSizing()
-		SavePosition()
+		SavePosition(true)
 	end)
 	self.grip = grip
 
@@ -464,15 +538,9 @@ function Shell:Create()
 	end)
 	ns.Conversations:Init()
 	self:SetLocked(ns.db.locked)
-	-- Action bars take their Edit Mode places a moment after login. Until
-	-- you move the window yourself, place it again once they have.
-	if C_Timer then
-		C_Timer.After(3, function()
-			if not ns.db.position then
-				ApplyPosition()
-			end
-		end)
-	end
+	-- Invisible until the action bars have their places; see Reveal.
+	frame:SetAlpha(0)
+	WatchPlacement()
 end
 
 -- Two kinds of chrome. Backgrounds (the window's fill and the marble panels)
@@ -662,7 +730,7 @@ end
 
 function Shell:ResetPosition()
 	ns.db.position = nil
-	ns.db.width, ns.db.height = 500, 320
+	ns.db.sized = false
 	ApplyPosition()
 end
 
@@ -682,6 +750,28 @@ end
 local SECTION_NAMES = { chat = "Channels", whispers = "Whispers" }
 
 local NEUTRAL = { r = 0.55, g = 0.55, b = 0.55 }
+
+-- Short names for the compact strip, enough to tell rows apart at a glance.
+local GROUP_TAGS = { nearby = "Say", party = "Party", raid = "Raid", instance = "Inst", guild = "Guild", officer = "Officer", game = "Game" }
+local CHANNEL_TAGS = {
+	General = "Gen", Trade = "Trade", LocalDefense = "Def", WorldDefense = "WDef",
+	LookingForGroup = "LFG", GuildRecruitment = "Recruit", Services = "Serv", NewcomerChat = "New",
+}
+
+local function ShortTag(conv)
+	if conv.archiveOf then
+		return "Old " .. (GROUP_TAGS[conv.archiveOf] or "")
+	end
+	if conv.group and GROUP_TAGS[conv.group] then
+		return GROUP_TAGS[conv.group]
+	end
+	local label = conv.label or "?"
+	if conv.chatType == "CHANNEL" then
+		return CHANNEL_TAGS[label] or label
+	end
+	-- People by first name; the full name is in the tooltip.
+	return label:match("^(%S+)") or label
+end
 
 local function DotColor(conv)
 	if conv.chatType == "WHISPER" or conv.chatType == "BN_WHISPER" then
@@ -826,7 +916,9 @@ function Shell:Refresh()
 			end
 			row.label:SetText(compact and "" or label)
 			row.dot:ClearAllPoints()
-			row.dot:SetPoint("LEFT", row, "LEFT", compact and 5 or 16, 0)
+			row.dot:SetPoint("LEFT", row, "LEFT", 16, 0)
+			row.dot:SetShown(not compact)
+			row.tag:SetText(compact and ShortTag(conv) or "")
 			if (sendable and not available) or conv.readOnly then
 				row.label:SetTextColor(0.5, 0.5, 0.5)
 			elseif selected then
@@ -836,7 +928,13 @@ function Shell:Refresh()
 			end
 			row.selected:SetShown(selected)
 			local dot = DotColor(conv)
-			row.dot:SetVertexColor(dot.r, dot.g, dot.b, (conv.readOnly or (sendable and not available)) and 0.5 or 1)
+			local dim = (conv.readOnly or (sendable and not available)) and 0.5 or 1
+			row.dot:SetVertexColor(dot.r, dot.g, dot.b, dim)
+			if selected then
+				row.tag:SetTextColor(1, 0.82, 0)
+			else
+				row.tag:SetTextColor(dot.r, dot.g, dot.b, dim)
+			end
 			if conv.chatType == "WHISPER" and not compact then
 				row.level:SetText(conv.level and tostring(conv.level) or "-")
 			else

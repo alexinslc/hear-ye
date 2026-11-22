@@ -385,11 +385,34 @@ section("Loading and logging in", function()
 	check("schema is current", db.schema == S.ns.SCHEMA, db.schema)
 	check("opacity default is 0.5", db.opacity == 0.5, db.opacity)
 	check("history is marked loaded", S.ns.Conversations.loaded == true)
-	check("a Nearby row exists", S.ns.Conversations:Get("nearby") ~= nil)
+	check("a Say row exists", S.ns.Conversations:Get("nearby") ~= nil and S.ns.Conversations:Get("nearby").label == "Say")
 	check("a Game row exists", S.ns.Conversations:Get("game") ~= nil)
 	S.runTimers()
 	check("the welcome window asks on first login", S.ns.Setup ~= nil)
 	first = S
+end)
+
+section("Placement", function()
+	local S = Boot(nil)
+	S.env.UIParent:SetSize(2560 / 1440 * 768, 768) -- 1440p at the default UI scale
+	S.login()
+	local frame = S.ns.Shell.frame
+	check("the window is invisible until the bars are placed", frame:GetAlpha() == 0)
+	S.fire("EDIT_MODE_LAYOUTS_UPDATED")
+	S.runTimers()
+	check("it appears once they are", frame:GetAlpha() == 1)
+	local w, h = frame:GetSize()
+	check("it sizes itself for the screen", w == math.floor(2560 / 1440 * 768 * 0.36) and h == math.floor(768 * 0.42), w .. "x" .. h)
+
+	S = Boot(nil)
+	S.login()
+	S.fire("PLAYER_ENTERING_WORLD")
+	S.runTimers()
+	check("it appears even without a layout event", S.ns.Shell.frame:GetAlpha() == 1)
+
+	S = Boot({ schema = 3, position = { "BOTTOMLEFT", "BOTTOMLEFT", 40, 200 }, width = 700, height = 380 })
+	S.login()
+	check("a window resized before keeps its size", S.ns.db.sized == true and S.ns.Shell.frame:GetWidth() == 700)
 end)
 
 section("Whispers", function()
@@ -404,7 +427,7 @@ section("Whispers", function()
 	check("your reply joins the same row", lineCount(conv) == 2, lineCount(conv))
 	check("your reply shows as [You]", hasLine(conv, "[You]"))
 	S.chatEvent("CHAT_MSG_SAY", "hello there", "Someone-Forever", { guid = "Player-1-00000003" })
-	check("Say goes to Nearby", hasLine(C:Get("nearby"), "hello there"))
+	check("Say goes to the Say row", hasLine(C:Get("nearby"), "hello there"))
 end)
 
 section("Secret values", function()
@@ -453,7 +476,7 @@ section("Hiding the conversation list", function()
 	local Shell = S.ns.Shell
 	Shell.sidebar._h = 300 -- room for rows, which the stub frames don't lay out
 	Shell.listToggle:GetScript("OnClick")()
-	check("the list goes compact", S.ns.db.sidebarHidden == true and Shell.sidebar:GetWidth() == 58, Shell.sidebar:GetWidth())
+	check("the list goes compact", S.ns.db.sidebarHidden == true and Shell.sidebar:GetWidth() == 82, Shell.sidebar:GetWidth())
 	S.chatEvent("CHAT_MSG_WHISPER", "still there?", "Brana Tester-Forever", { guid = "Player-1-00000002" })
 	local shownPills = 0
 	for _, conv in ipairs(S.ns.Conversations:Sorted()) do
@@ -581,18 +604,26 @@ section("A reload keeps the guild session", function()
 	check("no Former guild row once it's the same guild", earlier() == nil)
 	check("the guild row keeps its history", hasLine(R.ns.Conversations:Get("guild"), "evening all"))
 
-	-- A different guild after the reload does end the old session.
+	-- A different guild after the reload starts Guild empty, with no
+	-- "Former guild" row.
 	local db2 = R.logout()
 	local D = Boot(db2)
 	D.inGuild, D.guildName = true, "Other Guild"
 	D.login()
 	table.remove(D.timers, 1)()
-	check("a different guild ends the old session", earlier and (function()
-		for _, c in ipairs(D.ns.Conversations:Sorted()) do
-			if c.archiveOf == "guild" then return true end
-		end
-		return false
-	end)())
+	local former = false
+	for _, c in ipairs(D.ns.Conversations:Sorted()) do
+		if c.archiveOf == "guild" then former = true end
+	end
+	check("a different guild leaves no Former guild row", not former)
+	check("a different guild starts with no history", #D.ns.Conversations:Get("guild").lines == 0)
+
+	-- Old saved files with a Former guild row don't bring it back.
+	local old = D.logout()
+	old.characters["Player-1-00000001"].convs["guild@4"] = { label = "Former guild", archiveOf = "guild", group = "guild", readOnly = true, lines = { { text = "x", t = 1 } } }
+	local O = Boot(old)
+	O.login()
+	check("an old Former guild row is dropped", O.ns.Conversations:Get("guild@4") == nil)
 end)
 
 section("Old and damaged saved files", function()

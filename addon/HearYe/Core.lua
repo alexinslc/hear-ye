@@ -3,7 +3,7 @@ local addonName, ns = ...
 _G.HearYe = ns
 
 ns.name = addonName
-ns.SCHEMA = 3
+ns.SCHEMA = 4
 
 -- Plain values; each is checked by type on load, so a damaged or old saved
 -- file falls back to the default instead of breaking the window.
@@ -20,7 +20,8 @@ local defaults = {
 	opacity = 0.5,
 	fadeBackground = true, -- hide the background when the mouse is away, like the default chat
 	groupSound = "none", -- a sound for new party, raid and guild messages
-	sidebarHidden = false, -- the conversation list, hidden for more room
+	sidebarHidden = false, -- the conversation list, as a compact strip
+	sized = false, -- true once you've resized the window yourself
 }
 
 -- Proposed bounds for saved history; not yet tuned in play.
@@ -39,6 +40,13 @@ local MIGRATIONS = {
 	[1] = function(db)
 		-- Schema 1 (Phases 1-3) had no saved history or settings.
 		db.characters = {}
+	end,
+	[3] = function(db)
+		-- Before this, a saved position meant the window had been moved or
+		-- resized by hand; keep that size. Otherwise it now sizes itself.
+		if type(db.position) == "table" then
+			db.sized = true
+		end
 	end,
 	[2] = function(db)
 		-- The old default was nearly solid; move it to the new, lighter one

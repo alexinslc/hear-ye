@@ -32,11 +32,13 @@ end
 -- you leave, it becomes a read-only "Earlier" row and the next group starts
 -- fresh, so a new party never inherits the old one as its recipient.
 local GROUPS = {
-	nearby = { label = "Nearby", chatType = "SAY", sort = 1 },
+	nearby = { label = "Say", chatType = "SAY", sort = 1 },
 	party = { label = "Party", chatType = "PARTY", sort = 2, available = InHomeGroup, session = true, earlier = "Earlier party" },
 	raid = { label = "Raid", chatType = "RAID", sort = 3, available = InHomeRaid, session = true, earlier = "Earlier raid" },
 	instance = { label = "Instance", chatType = "INSTANCE_CHAT", sort = 4, available = InInstanceGroup, session = true, earlier = "Earlier instance" },
-	guild = { label = "Guild", chatType = "GUILD", sort = 5, available = IsInGuild, session = true, earlier = "Former guild" },
+	-- No "former guild": the Guild row is there while you're in a guild and
+	-- gone when you aren't. Joining a different guild starts it empty.
+	guild = { label = "Guild", chatType = "GUILD", sort = 5, available = IsInGuild },
 	-- Officer chat depends on guild rank, which isn't simple to check, so the
 	-- row appears when the first officer message arrives.
 	officer = { label = "Officer", chatType = "OFFICER", sort = 6, available = IsInGuild, onDemand = true },
@@ -149,32 +151,30 @@ function Conversations:ReconcileGroups()
 				conv = CreateGroup(key)
 			end
 			-- A group restored from last session: keep it only if it's the same
-			-- group, as after a /reload. A party is the same if someone from it
-			-- is still with you; a guild if it has the same name.
+			-- group (someone from it is still with you), as after a /reload.
 			if conv and conv.pendingSession and Conversations.ready then
-				local different
-				if key == "guild" then
-					-- Guild data can take a while after loading. Until the game
-					-- says which guild you're in, don't decide.
-					local name = now and GetGuildInfo and GetGuildInfo("player")
-					if name then
-						different = conv.guildName ~= nil and conv.guildName ~= name
-						conv.guildName = name
-						conv.pendingSession = nil
-					elseif Conversations.settled then
-						conv.pendingSession = nil
-					end
-				else
-					conv.pendingSession = nil
-					different = now and conv.members and not Conversations:SharesMembers(conv.members)
-				end
-				if different and group.session and #conv.lines > 0 then
+				conv.pendingSession = nil
+				if now and group.session and conv.members and not Conversations:SharesMembers(conv.members) and #conv.lines > 0 then
 					Archive(conv)
 					conv = CreateGroup(key)
 				end
 			end
-			if key == "guild" and conv and now and not conv.pendingSession and GetGuildInfo then
-				conv.guildName = GetGuildInfo("player") or conv.guildName
+			-- The guild is known by its name. A different guild than the saved
+			-- one starts with no history; nothing of the old one is kept.
+			if key == "guild" and conv and now and GetGuildInfo then
+				local name = GetGuildInfo("player")
+				if name then
+					if conv.guildName and conv.guildName ~= name then
+						conv.lines, conv.unread, conv.draft = {}, 0, nil
+						ns:Log("new guild; guild history cleared")
+					end
+					conv.guildName = name
+				end
+			end
+			-- Not in a guild (once the game has had time to say so): don't
+			-- leave the Guild row open.
+			if key == "guild" and not now and Conversations.settled and Conversations.selectedKey == "guild" then
+				Conversations.selectedKey = "nearby"
 			end
 			-- Until that's decided, leave a restored group alone rather than end it early.
 			if conv and not conv.pendingSession then
@@ -660,7 +660,8 @@ function Conversations:Restore()
 	local restored = 0
 	local inOrder = {}
 	for key, s in pairs(saved.convs) do
-		if type(key) == "string" and type(s) == "table" and type(s.lines) == "table" then
+		-- Former guild rows from older versions aren't brought back.
+		if type(key) == "string" and type(s) == "table" and type(s.lines) == "table" and s.archiveOf ~= "guild" then
 			local conv = Create(key, {})
 			inOrder[#inOrder + 1] = conv
 			for _, field in ipairs(SAVED_FIELDS) do
@@ -675,6 +676,9 @@ function Conversations:Restore()
 			end
 			local group = conv.group and GROUPS[conv.group]
 			if group and not conv.readOnly then
+				-- Group rows take today's name, so a renamed row ("Nearby" is
+				-- now "Say") isn't stuck with the saved one.
+				conv.label = group.label
 				conv.available = group.available
 				conv.wasAvailable = true
 				conv.pendingSession = group.session or nil

@@ -27,7 +27,7 @@ Before 1.0, drop the early-testing line. The logo and banner are placeholders un
 
 ### What it does
 
-- **One row per conversation:** Nearby, Party, Raid, Guild, each channel you've joined, and each person who whispers you. A red badge shows what you haven't read.
+- **One row per conversation:** Say, Party, Raid, Guild, each channel you've joined, and each person who whispers you. A red pill shows what you haven't read.
 - **The game's own chat box:** press Enter and type as usual. Slash commands, /r, Tab, history and Shift-clicking links all work the way they always have.
 - **Click a row to talk there.** Typing /p or /w Name moves the window to that row too.
 - **Unsent text stays put:** switch rows mid-sentence and your text waits in the row you left.
