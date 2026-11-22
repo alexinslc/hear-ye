@@ -228,6 +228,9 @@ local function ShowRowTooltip(row)
 	end
 	GameTooltip:SetOwner(row, "ANCHOR_RIGHT")
 	GameTooltip:SetText(conv.fullName or conv.label, 1, 1, 1)
+	if conv.chatType == "BN_WHISPER" and conv.battleTag then
+		GameTooltip:AddLine(conv.battleTag, 0.51, 0.77, 1)
+	end
 	if conv.chatType == "WHISPER" or conv.chatType == "BN_WHISPER" then
 		if conv.level then
 			GameTooltip:AddLine(("Level %d %s"):format(conv.level, conv.className or ""), 0.8, 0.8, 0.8)
@@ -919,7 +922,7 @@ local function Context(conv)
 		end
 		return table.concat(parts, " - ")
 	elseif conv.chatType == "BN_WHISPER" then
-		return "Battle.net" .. (conv.battleTag and (" - " .. conv.battleTag) or "")
+		return "Battle.net"
 	end
 	return ""
 end

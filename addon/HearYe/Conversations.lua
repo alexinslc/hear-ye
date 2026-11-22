@@ -426,9 +426,8 @@ local function BattleTagFor(bnetID)
 	return nil
 end
 
--- Battle.net friends are shown by BattleTag, never by their real name: the
--- name before the "#" in the list and in messages, the whole tag in the
--- header and tooltip.
+-- Battle.net friends are shown by BattleTag, never by their real name: just
+-- the name before the "#", with the whole tag only in the row's tooltip.
 local function ShortBattleTag(tag)
 	return tag and (tag:match("^([^#]+)") or tag) or "Battle.net friend"
 end
@@ -464,7 +463,7 @@ end
 function Conversations:LabelBNet(conv)
 	local realName = not ns.db.hideRealNames and self:ResolveBNet(conv)
 	conv.label = realName or ShortBattleTag(conv.battleTag)
-	conv.fullName = realName or conv.battleTag or conv.label
+	conv.fullName = conv.label -- the "#1234" part is only in the tooltip
 end
 
 function Conversations:RelabelBNet()
