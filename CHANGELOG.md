@@ -4,7 +4,6 @@
 
 - Fixed a Battle.net friend's real name showing in the chat box while typing to them.
 - Fixed Battle.net friends showing by BattleTag instead of their character for a while after a reload.
-- A Battle.net friend's tooltip now says when they're playing.
 - The settings window now has the Hear Ye bell, and its checkboxes line up.
 
 ## 0.3.0
