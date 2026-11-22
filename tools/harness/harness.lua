@@ -451,12 +451,19 @@ end)
 section("Hiding the conversation list", function()
 	local S = first
 	local Shell = S.ns.Shell
+	Shell.sidebar._h = 300 -- room for rows, which the stub frames don't lay out
 	Shell.listToggle:GetScript("OnClick")()
-	check("the list hides", S.ns.db.sidebarHidden == true)
+	check("the list goes compact", S.ns.db.sidebarHidden == true and Shell.sidebar:GetWidth() == 50, Shell.sidebar:GetWidth())
 	S.chatEvent("CHAT_MSG_WHISPER", "still there?", "Brana Tester-Forever", { guid = "Player-1-00000002" })
-	check("unread shows beside the button while hidden", Shell.listToggle.pill:IsShown())
+	local shownPills = 0
+	for _, conv in ipairs(S.ns.Conversations:Sorted()) do
+		if conv.unread > 0 then shownPills = shownPills + 1 end
+	end
+	check("the strip still has unread conversations to show", shownPills > 0)
+	check("the button carries no total in the strip", not Shell.listToggle.pill:IsShown())
 	Shell.listToggle:GetScript("OnClick")()
-	check("the list comes back", S.ns.db.sidebarHidden == false and not Shell.listToggle.pill:IsShown())
+	check("the names come back", S.ns.db.sidebarHidden == false and Shell.sidebar:GetWidth() == 150)
+	Shell.sidebar._h = 0
 end)
 
 section("Game replies count as unread", function()

@@ -7,6 +7,7 @@ local Shell = {}
 ns.Shell = Shell
 
 local SIDEBAR_WIDTH = 150
+local COMPACT_WIDTH = 50 -- the list as a strip of markers and unread pills
 local HEADER_HEIGHT = 22
 local INPUT_HEIGHT = 30
 local ROW_HEIGHT = 18
@@ -395,6 +396,7 @@ function Shell:Create()
 
 	local paneInset = ns.NewInset(frame)
 	self.paneInset = paneInset
+	self.sidebar = sidebar
 	self:CreateListToggle()
 	self:ApplySidebar()
 	-- Conversation header: who or where, and a line of context.
@@ -603,8 +605,8 @@ function Shell:CreateListToggle()
 	end)
 	toggle:SetScript("OnEnter", function(self)
 		GameTooltip:SetOwner(self, "ANCHOR_TOP")
-		GameTooltip:SetText(ns.db.sidebarHidden and "Show conversations" or "Hide conversations")
-		GameTooltip:AddLine("More room for messages while it's hidden.", 0.8, 0.8, 0.8, true)
+		GameTooltip:SetText(ns.db.sidebarHidden and "Show names" or "Compact list")
+		GameTooltip:AddLine(ns.db.sidebarHidden and "Show each conversation's name." or "Just colours and unread counts, for more room to read.", 0.8, 0.8, 0.8, true)
 		GameTooltip:Show()
 	end)
 	toggle:SetScript("OnLeave", GameTooltip_Hide)
@@ -615,28 +617,33 @@ function Shell:CreateListToggle()
 	self.listToggle = toggle
 end
 
+-- "Hidden" keeps the list as a narrow strip: each conversation's coloured
+-- square and its unread pill, with the name in its tooltip. The pane gets
+-- the room the names took.
 function Shell:ApplySidebar()
-	local hidden = ns.db.sidebarHidden
+	local compact = ns.db.sidebarHidden
 	local toggle = self.listToggle
 	local top = self.styled and -28 or -HEADER_HEIGHT - 4
-	sidebar:SetShown(not hidden)
+	sidebar:SetWidth(compact and COMPACT_WIDTH or SIDEBAR_WIDTH)
 	inputArea:ClearAllPoints()
-	self.paneInset:ClearAllPoints()
-	if hidden then
-		-- Below the portrait and the button, across the whole window.
-		inputArea:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 8, 6)
-		self.paneInset:SetPoint("TOPLEFT", frame, "TOPLEFT", 8, self.styled and -60 or top - 26)
-	else
-		inputArea:SetPoint("BOTTOMLEFT", sidebar, "BOTTOMRIGHT", 4, 0)
-		self.paneInset:SetPoint("TOP", frame, "TOP", 0, top)
-		self.paneInset:SetPoint("LEFT", sidebar, "RIGHT", 4, 0)
-	end
+	inputArea:SetPoint("BOTTOMLEFT", sidebar, "BOTTOMRIGHT", 4, 0)
 	inputArea:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -8, 6)
+	self.paneInset:ClearAllPoints()
+	self.paneInset:SetPoint("TOP", frame, "TOP", 0, top)
+	self.paneInset:SetPoint("LEFT", sidebar, "RIGHT", 4, 0)
 	self.paneInset:SetPoint("BOTTOMRIGHT", inputArea, "TOPRIGHT", 0, 2)
-	local arrow = hidden and "NextPage" or "PrevPage"
+	-- In the strip, the button sits at its top, since the pane now starts
+	-- right beside the portrait.
+	toggle:ClearAllPoints()
+	if compact then
+		toggle:SetPoint("TOP", sidebar, "TOP", 0, -3)
+	else
+		toggle:SetPoint("TOPLEFT", frame, "TOPLEFT", self.styled and 58 or 6, self.styled and -31 or -HEADER_HEIGHT)
+	end
+	local arrow = compact and "NextPage" or "PrevPage"
 	toggle:SetNormalTexture("Interface\\Buttons\\UI-SpellbookIcon-" .. arrow .. "-Up")
 	toggle:SetPushedTexture("Interface\\Buttons\\UI-SpellbookIcon-" .. arrow .. "-Down")
-	toggle.label:SetText(hidden and "" or "Conversations")
+	toggle.label:SetText(compact and "" or "Conversations")
 end
 
 function Shell:IsActive()
@@ -726,7 +733,8 @@ function Shell:Refresh()
 	end
 	local C = ns.Conversations
 	local list = C:Sorted()
-	local y = -6
+	local compact = ns.db.sidebarHidden
+	local y = compact and -28 or -6
 	local bottom = sidebar:GetHeight() - 6
 	local rowCount, sectionCount = 0, 0
 
@@ -768,24 +776,33 @@ function Shell:Refresh()
 		if full or -y + SECTION_HEIGHT > bottom then
 			break
 		end
-		local collapsed = ns.db.collapsed[group.key]
-		sectionCount = sectionCount + 1
-		local section = sections[sectionCount] or CreateSection(sectionCount)
-		section.key = group.key
-		section:ClearAllPoints()
-		section:SetPoint("TOPLEFT", sidebar, "TOPLEFT", 4, y)
-		section:SetPoint("RIGHT", sidebar, "RIGHT", -4, 0)
-		section.label:SetText(SECTION_NAMES[group.key])
-		section.icon:SetTexture(collapsed and "Interface\\Buttons\\UI-PlusButton-Up" or "Interface\\Buttons\\UI-MinusButton-Up")
-		if collapsed and group.unread > 0 then
-			section.count:SetText("")
-			section.pill:SetCount(group.unread, not group.loud)
+		-- The strip has no headers or closed sections; a small gap
+		-- separates the groups instead.
+		local collapsed = not compact and ns.db.collapsed[group.key]
+		if compact then
+			if sectionCount > 0 then
+				y = y - 6
+			end
+			sectionCount = sectionCount + 1
 		else
-			section.count:SetText(#group.convs)
-			section.pill:Hide()
+			sectionCount = sectionCount + 1
+			local section = sections[sectionCount] or CreateSection(sectionCount)
+			section.key = group.key
+			section:ClearAllPoints()
+			section:SetPoint("TOPLEFT", sidebar, "TOPLEFT", 4, y)
+			section:SetPoint("RIGHT", sidebar, "RIGHT", -4, 0)
+			section.label:SetText(SECTION_NAMES[group.key])
+			section.icon:SetTexture(collapsed and "Interface\\Buttons\\UI-PlusButton-Up" or "Interface\\Buttons\\UI-MinusButton-Up")
+			if collapsed and group.unread > 0 then
+				section.count:SetText("")
+				section.pill:SetCount(group.unread, not group.loud)
+			else
+				section.count:SetText(#group.convs)
+				section.pill:Hide()
+			end
+			section:Show()
+			y = y - SECTION_HEIGHT
 		end
-		section:Show()
-		y = y - SECTION_HEIGHT
 
 		for _, conv in ipairs(collapsed and {} or group.convs) do
 			if -y + ROW_HEIGHT > bottom then
@@ -807,7 +824,9 @@ function Shell:Refresh()
 			if labelCount[label] and labelCount[label] > 1 and conv.fullName then
 				label = conv.fullName
 			end
-			row.label:SetText(label)
+			row.label:SetText(compact and "" or label)
+			row.dot:ClearAllPoints()
+			row.dot:SetPoint("LEFT", row, "LEFT", compact and 5 or 16, 0)
 			if (sendable and not available) or conv.readOnly then
 				row.label:SetTextColor(0.5, 0.5, 0.5)
 			elseif selected then
@@ -818,7 +837,7 @@ function Shell:Refresh()
 			row.selected:SetShown(selected)
 			local dot = DotColor(conv)
 			row.dot:SetVertexColor(dot.r, dot.g, dot.b, (conv.readOnly or (sendable and not available)) and 0.5 or 1)
-			if conv.chatType == "WHISPER" then
+			if conv.chatType == "WHISPER" and not compact then
 				row.level:SetText(conv.level and tostring(conv.level) or "-")
 			else
 				row.level:SetText("")
@@ -840,20 +859,13 @@ function Shell:Refresh()
 		rows[i]:Hide()
 		rows[i].conv = nil
 	end
-	for i = sectionCount + 1, #sections do
+	for i = (compact and 1 or sectionCount + 1), #sections do
 		sections[i]:Hide()
 	end
 
-	-- With the list hidden, its unread total shows beside the toggle.
+	-- Each row in the strip shows its own pill; nothing goes on the button.
 	if self.listToggle then
-		local total, loud = 0, false
-		if ns.db.sidebarHidden then
-			for _, group in ipairs(order) do
-				total = total + group.unread
-				loud = loud or group.loud
-			end
-		end
-		self.listToggle.pill:SetCount(total, not loud)
+		self.listToggle.pill:Hide()
 	end
 
 	local selected = C:GetSelected()
