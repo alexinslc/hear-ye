@@ -208,9 +208,6 @@ local function Deliver(conv, line, r, g, b, countsAsUnread)
 		end
 	elseif countsAsUnread then
 		conv.unread = conv.unread + 1
-		if ns.Conversations.KeepsHistory(conv) then
-			ns.Shell:NoteActivity()
-		end
 	end
 	ns.Shell:Refresh()
 end
@@ -616,8 +613,6 @@ function Messages:Init()
 	emptyNote:SetJustifyH("LEFT")
 	emptyNote:Hide()
 	self.emptyNote = emptyNote
-	ns.Shell:AddTextHolder(newButton)
-	ns.Shell:AddTextHolder(emptyNote)
 
 	local listener = CreateFrame("Frame")
 	local failed = {}

@@ -284,8 +284,7 @@ local function SetPill(pill, count, quiet)
 	pill:Show()
 end
 
--- Everything in the window that shows text, apart from the messages. These
--- fade with the messages when chat goes quiet; see PaintText.
+-- The conversation side: header, messages and hint. See PaintText.
 local textHolders = {}
 
 local function CreatePill(parent)
@@ -313,7 +312,6 @@ end
 
 local function CreateRow(index)
 	local row = CreateFrame("Button", nil, sidebar)
-	textHolders[#textHolders + 1] = row
 	row:SetHeight(ROW_HEIGHT)
 	row:RegisterForClicks("LeftButtonUp")
 	row:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight", "ADD")
@@ -367,7 +365,6 @@ end
 -- shows their total on a pill instead.
 local function CreateSection(index)
 	local section = CreateFrame("Button", nil, sidebar)
-	textHolders[#textHolders + 1] = section
 	section:SetHeight(SECTION_HEIGHT)
 	section:RegisterForClicks("LeftButtonUp")
 	section:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight", "ADD")
@@ -627,7 +624,7 @@ function Shell:Create()
 	-- Invisible until the action bars have their places; see Reveal.
 	frame:SetAlpha(0)
 	WatchPlacement()
-	for _, holder in ipairs({ self.moreText, self.paneHeader, self.listToggle, self.hintFrame }) do
+	for _, holder in ipairs({ self.paneHeader, self.pane, self.hintFrame }) do
 		textHolders[#textHolders + 1] = holder
 	end
 	lastActivity = GetTime()
@@ -742,12 +739,12 @@ local function TargetAmount(now, active)
 	return 0
 end
 
--- The text fades too, like the default chat: a couple of minutes after the
--- last message or the last time you looked, the conversation list and the
--- header fade along with the message lines (the message frame fades its own
--- lines, line by line). A new message in the open conversation, or in a
--- whisper, party, raid or guild row, brings the list back; hovering or typing
--- brings everything back. Busy public channels in other rows don't.
+-- The conversation side fades too, like the default chat: two minutes after
+-- the last message in the open conversation, or the last time you looked,
+-- its header, messages and notes fade out as one. The list stays, so unread
+-- pills are always there. A message in the open conversation, switching rows,
+-- hovering or typing brings it back. Within it, old lines also fade one by
+-- one, so a new message stands out when it returns.
 local textAmount -- 0: faded out, 1: fully shown
 local lastActivity = 0
 local lastWake = 0
@@ -757,13 +754,6 @@ local function PaintText(amount)
 	for _, holder in ipairs(textHolders) do
 		holder:SetAlpha(amount)
 	end
-end
-
--- Text made outside the window's own code (the message pane's notes) joins
--- the fade here.
-function Shell:AddTextHolder(region)
-	textHolders[#textHolders + 1] = region
-	region:SetAlpha(textAmount or 1)
 end
 
 function Shell:NoteActivity()

@@ -338,7 +338,7 @@ local function Build()
 	quietCheck:SetPoint("TOPLEFT", fadeCheck, "BOTTOMLEFT", 0, 0)
 	local quietText = quietCheck:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
 	quietText:SetPoint("LEFT", quietCheck, "RIGHT", 4, 1)
-	quietText:SetText("Fade the text too when chat is quiet")
+	quietText:SetText("Fade the messages when the conversation is quiet")
 	quietCheck:SetScript("OnClick", function(self)
 		ns.db.fadeText = self:GetChecked() and true or false
 		ns.Shell:ApplyOpacity()

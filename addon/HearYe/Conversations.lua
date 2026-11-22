@@ -19,11 +19,6 @@ local KEEPS_HISTORY = {
 	WHISPER = true, BN_WHISPER = true, PARTY = true, RAID = true,
 	INSTANCE_CHAT = true, GUILD = true, OFFICER = true,
 }
--- Whether a conversation is one of your own (whisper, party, raid, guild).
-function Conversations.KeepsHistory(conv)
-	return KEEPS_HISTORY[conv.chatType] == true
-end
-
 local MAX_CHANNELS = (Constants and Constants.ChatFrameConstants and Constants.ChatFrameConstants.MaxChatChannels) or 20
 
 local byKey = {}
@@ -597,6 +592,7 @@ function Conversations:Select(key, fromNative)
 	self.selectedKey = key
 	if changed then
 		ns.Messages:Render()
+		ns.Shell:NoteActivity()
 		ns:Log("selected %s (%s)", key, fromNative and "native command" or "sidebar")
 	end
 	if not fromNative then

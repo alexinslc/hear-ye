@@ -642,7 +642,7 @@ section("Hovering", function()
 	frame.IsMouseOver = nil
 end)
 
-section("Quiet chat fades the text", function()
+section("A quiet conversation fades", function()
 	local S = first
 	local Shell = S.ns.Shell
 	local frame = Shell.frame
@@ -652,20 +652,26 @@ section("Quiet chat fades the text", function()
 		return Shell:DescribeChrome()
 	end
 	local woken = 0
-	local pane = S.ns.Messages.frame
-	rawset(pane, "ResetAllFadeTimes", function() woken = woken + 1 end)
+	rawset(S.ns.Messages.frame, "ResetAllFadeTimes", function() woken = woken + 1 end)
 	settle(1)
-	check("the text stays while chat is busy", settle(60):find("text 100%%") ~= nil, Shell:DescribeChrome())
-	check("it fades after two quiet minutes", settle(130):find("text 0%%") ~= nil, Shell:DescribeChrome())
-	check("the empty-row note fades with it", S.ns.Messages.emptyNote:GetAlpha() == 0, S.ns.Messages.emptyNote:GetAlpha())
-	check("so does the New messages button", S.ns.Messages.newButton:GetAlpha() == 0, S.ns.Messages.newButton:GetAlpha())
+	check("the messages stay while it's busy", settle(60):find("text 100%%") ~= nil, Shell:DescribeChrome())
+	check("they fade after two quiet minutes", settle(130):find("text 0%%") ~= nil, Shell:DescribeChrome())
+	check("the whole message side fades as one", Shell.pane:GetAlpha() == 0 and Shell.paneHeader:GetAlpha() == 0, Shell.pane:GetAlpha())
+	check("the conversation list stays", Shell.sidebar:GetAlpha() == 1, Shell.sidebar:GetAlpha())
 	local selected = S.ns.Conversations.selectedKey
-	if selected ~= "nearby" then
-		S.chatEvent("CHAT_MSG_SAY", "anyone near the inn?", "Someone-Forever", { guid = "Player-1-00000003" })
-		check("Say in another row doesn't bring it back", settle(1):find("text 0%%") ~= nil, Shell:DescribeChrome())
-	end
 	S.chatEvent("CHAT_MSG_WHISPER", "meet at the bank?", "Quiet Friend-Forever", { guid = "Player-1-00000009" })
-	check("a whisper brings the list back", settle(1):find("text 100%%") ~= nil, Shell:DescribeChrome())
+	if S.ns.Conversations.selectedKey == selected then
+		check("a message in another row doesn't bring it back", settle(1):find("text 0%%") ~= nil, Shell:DescribeChrome())
+	end
+	local key = S.ns.Conversations:EnsureWhisper("Quiet Friend-Forever").key
+	check("the whisper went to another row", key ~= selected, key)
+	do
+		S.ns.Conversations:Select(key)
+		check("switching to a row brings it back", settle(1):find("text 100%%") ~= nil, Shell:DescribeChrome())
+		settle(200)
+		S.chatEvent("CHAT_MSG_WHISPER", "I'm by the mailbox", "Quiet Friend-Forever", { guid = "Player-1-00000009" })
+		check("a message in the open row brings it back", settle(1):find("text 100%%") ~= nil, Shell:DescribeChrome())
+	end
 	settle(200)
 	frame.IsMouseOver = function() return true end
 	S.mouseFocus = Shell.pane
@@ -675,7 +681,7 @@ section("Quiet chat fades the text", function()
 	frame.IsMouseOver = nil
 	S.mouseFocus = nil
 	S.ns.db.fadeText = false
-	check("with the setting off, the text stays", settle(400):find("text 100%%") ~= nil, Shell:DescribeChrome())
+	check("with the setting off, it stays", settle(400):find("text 100%%") ~= nil, Shell:DescribeChrome())
 	S.ns.db.fadeText = true
 	Shell:ApplyOpacity()
 end)
