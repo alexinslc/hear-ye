@@ -1,6 +1,8 @@
 # Artwork brief
 
-Artwork for Hear Ye, a World of Warcraft: Forever addon that keeps party, guild, nearby and whisper chat in one small window, each conversation in its own row, so players stop missing messages. Everything here is for our artist.
+Artwork for Hear Ye, a World of Warcraft: Forever addon that keeps party, guild, nearby and whisper chat in one small window, each conversation in its own row, so players stop missing messages. Everything here is for the artist, whether that's a person or an image model.
+
+If an image model makes these, each piece's section below works as its prompt, together with the art direction and the things to avoid. Check the results for stray letters or fake text, which image models often add, and for backgrounds that are meant to be transparent but come back solid.
 
 CurseForge requires the logo to be original. It can't use a game's logo or a generic game graphic, or copy another project's logo. The current logo and banner in `art/` are placeholders and will be replaced by this work.
 
