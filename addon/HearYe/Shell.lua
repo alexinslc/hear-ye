@@ -603,9 +603,9 @@ function Shell:Create()
 	self.paneInset = paneInset
 	self.sidebar = sidebar
 	self:CreateListToggle()
-	self:ApplyStyle()
 	-- Conversation header: who or where, and a line of context.
 	local paneHeader = CreateFrame("Frame", nil, paneInset)
+	self.paneHeader = paneHeader
 	paneHeader:SetPoint("TOPLEFT", 8, -5)
 	paneHeader:SetPoint("TOPRIGHT", -8, -5)
 	paneHeader:SetHeight(18)
@@ -629,6 +629,7 @@ function Shell:Create()
 	pane = CreateFrame("Frame", nil, paneInset)
 	pane:SetPoint("TOPLEFT", 8, -30)
 	pane:SetPoint("BOTTOMRIGHT", -6, 4)
+	self.paneFrame = pane
 
 	local grip = CreateFrame("Button", nil, frame)
 	grip:SetSize(16, 16)
@@ -657,6 +658,7 @@ function Shell:Create()
 		ns.ChatReplace:Apply()
 	end)
 	frame:SetScript("OnSizeChanged", function()
+		Shell:LayoutSlimList()
 		Shell:Refresh()
 	end)
 
@@ -669,6 +671,8 @@ function Shell:Create()
 	end)
 	ns.Conversations:Init()
 	self:SetLocked(ns.db.locked)
+	-- Every piece exists now: lay them out for the chosen layout.
+	self:ApplyStyle()
 	-- Invisible until the action bars have their places; see Reveal.
 	frame:SetAlpha(0)
 	WatchPlacement()
@@ -760,7 +764,8 @@ end
 -- Hovering counts only when Hear Ye is what's under the pointer. A quest
 -- window, the map or anything else drawn on top of it doesn't wake it.
 local function Hovered()
-	if not frame:IsMouseOver() then
+	-- In the slim layout the list rises above the window, so it counts too.
+	if not frame:IsMouseOver() and not (sidebar and sidebar:IsShown() and sidebar:IsMouseOver()) then
 		return false
 	end
 	local ok, focus = pcall(MouseFocus)
@@ -899,25 +904,35 @@ function Shell:ApplyStyle()
 			end
 		end
 	end
-	local header = self.header
-	header:ClearAllPoints()
-	if slim then
-		header:SetPoint("TOPLEFT", 4, -3)
-		header:SetPoint("TOPRIGHT", -22, -3)
-		header:SetHeight(18)
-		self.slimTitle:ClearAllPoints()
-		self.slimTitle:SetPoint("LEFT", header, "LEFT", 46, 0)
-	else
-		header:SetPoint("TOPLEFT", 56, -1) -- the gear sits over its left end
-		header:SetPoint("TOPRIGHT", -46, -1)
-		header:SetHeight(HEADER_HEIGHT)
-	end
-	sidebar:ClearAllPoints()
-	sidebar:SetPoint("TOPLEFT", 8, self:ListTop())
-	sidebar:SetPoint("BOTTOMLEFT", 8, 6)
+	-- Slim: no conversation name row; the list and the "To ..." hint
+	-- already say where you are, and the room goes to messages.
+	self.paneHeader:SetShown(not slim)
+	self.chrome.rule:SetShown(not slim)
+	self.paneFrame:ClearAllPoints()
+	self.paneFrame:SetPoint("TOPLEFT", 8, slim and -4 or -30)
+	self.paneFrame:SetPoint("BOTTOMRIGHT", -6, 4)
 	self:ApplySidebar()
+	self:LayoutSlimList()
 	if shownAmount then
 		Shell.PaintChrome(shownAmount)
+	end
+end
+
+-- The list's place. In the slim layout it's a tall column on the left that
+-- rises above the short window, into the space beside your character, so
+-- every conversation still fits; the strip with the gear and title sits
+-- over the messages instead.
+function Shell:LayoutSlimList()
+	if not (frame and sidebar) then
+		return
+	end
+	sidebar:ClearAllPoints()
+	sidebar:SetPoint("BOTTOMLEFT", 8, 6)
+	if self:IsSlim() then
+		local tall = math.floor(math.min(math.max(UIParent:GetHeight() * 0.42, 260), 480)) - 12
+		sidebar:SetHeight(math.max(frame:GetHeight() - 12, tall))
+	else
+		sidebar:SetPoint("TOPLEFT", 8, self:ListTop())
 	end
 end
 
@@ -938,10 +953,24 @@ function Shell:ApplySidebar()
 	self.paneInset:SetPoint("BOTTOMRIGHT", inputArea, "TOPRIGHT", 0, 2)
 	-- The button stays in one spot beside the portrait, so a second click
 	-- in the same place switches back.
+	local header = self.header
+	header:ClearAllPoints()
+	if self:IsSlim() then
+		-- The strip starts past the list column, over the messages.
+		header:SetPoint("TOPLEFT", frame, "TOPLEFT", 8 + sidebar:GetWidth() + 4, -3)
+		header:SetPoint("TOPRIGHT", -22, -3)
+		header:SetHeight(18)
+		self.slimTitle:ClearAllPoints()
+		self.slimTitle:SetPoint("LEFT", header, "LEFT", 46, 0)
+	else
+		header:SetPoint("TOPLEFT", 56, -1) -- the gear sits over its left end
+		header:SetPoint("TOPRIGHT", -46, -1)
+		header:SetHeight(HEADER_HEIGHT)
+	end
 	toggle:ClearAllPoints()
 	if self:IsSlim() then
 		toggle:SetSize(18, 18)
-		toggle:SetPoint("TOPLEFT", frame, "TOPLEFT", 24, -3)
+		toggle:SetPoint("LEFT", header, "LEFT", 22, 0)
 	else
 		toggle:SetSize(24, 24)
 		toggle:SetPoint("TOPLEFT", frame, "TOPLEFT", self.styled and 58 or 6, self.styled and -31 or -HEADER_HEIGHT)

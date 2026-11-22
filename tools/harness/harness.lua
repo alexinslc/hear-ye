@@ -454,7 +454,8 @@ section("Placement", function()
 
 	local shell = S.ns.Shell
 	check("under my character uses the slim title bar", shell:IsSlim() and shell.slimBorder:IsShown() and not shell.frame.NineSlice:IsShown())
-	check("the slim bar starts the list near the top", shell:ListTop() == -24)
+	check("the slim layout drops the conversation name row", not shell.paneHeader:IsShown())
+	check("the list is a tall column above the short window", shell.sidebar:GetHeight() > shell.frame:GetHeight(), shell.sidebar:GetHeight() .. " vs " .. shell.frame:GetHeight())
 	S.ns.db.layout = "beside"
 	shell:ApplyStyle()
 	check("beside my character brings back the full title bar", not shell.slimBorder:IsShown() and shell.frame.NineSlice:IsShown() and shell:ListTop() == -60)
