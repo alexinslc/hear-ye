@@ -2,7 +2,7 @@
 
 Everything the project form asks for. Paste the description in Markdown mode, and use [art/logo.png](../art/logo.png) as the logo.
 
-Before 1.0, drop the early-testing line. The logo and banner are placeholders until the art in [artwork-brief.md](artwork-brief.md) arrives, and the screenshots listed there go in the gallery and description.
+Before 1.0, drop the early-testing line. The screenshots listed in [artwork-brief.md](artwork-brief.md) go in the gallery and description once there are some without other players in them.
 
 | Field | Value |
 | --- | --- |
@@ -23,7 +23,7 @@ Before 1.0, drop the early-testing line. The logo and banner are placeholders un
 
 **Did someone just whisper you? Did your party ask you something three trade spam lines ago?** Hear Ye keeps each conversation in its own row, with an unread count, in one small window that looks like part of the game.
 
-**Hear Ye is in early testing.** Party, raid and guild chat have had the least testing so far.
+**Hear Ye is in early testing.** Raid chat and combat have had the least testing so far.
 
 ### What it does
 
@@ -33,6 +33,8 @@ Before 1.0, drop the early-testing line. The logo and banner are placeholders un
 - **Unsent text stays put:** switch rows mid-sentence and your text waits in the row you left.
 - **History:** 7 days of messages are kept per character, through reloads and logouts.
 - **See-through:** set how solid the background is, and let it fade when the mouse is away, like the default chat.
+- **Compact list:** shrink the conversation list to short names and unread counts for more room to read.
+- **Fits your screen:** it sizes itself and sits just above your action bars, beside your character, at any resolution.
 
 ### Replacing the default chat
 

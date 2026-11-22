@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Turns art/logo.png into the textures the game loads.
+"""Turns art/icon.png into the textures the game loads.
 
 Writes addon/HearYe/Textures/Icon.tga (128x128) as
 uncompressed 32-bit TGA, the same format as Fireside Tales' textures. Resizing
@@ -16,7 +16,7 @@ import zlib
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TEXTURES = os.path.join(ROOT, "addon", "HearYe", "Textures")
-JOBS = [("logo.png", "Icon.tga", 128)]
+JOBS = [("icon.png", "Icon.tga", 128)]
 
 
 def read_png_rgba(path):

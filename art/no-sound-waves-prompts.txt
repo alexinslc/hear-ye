@@ -1,0 +1,22 @@
+Hear Ye — remove sound waves revision
+Edited with the built-in image_gen tool.
+Original versions backed up in outputs/backups/bell-with-waves.
+
+LOGO
+Use case: precise-object-edit.
+Input image 1 is the original Hear Ye logo and the edit target.
+Make ONE precise change: remove ALL the floating golden curved sound-wave/motion strokes around the brass bell. This includes the TWO LARGE golden arcs to the upper right of the bell AND the TWO SMALL golden curved strokes just below and to the right of the bell opening. Fill only those removed strokes with matching deep slate-blue painted background.
+Preserve the existing bell itself exactly: same size, diagonal tilt, wooden handle, brass highlights, shape, rim, interior and clapper. Preserve all cream parchment, abstract squiggles on the parchment, round worn bronze badge rim, palette, hand-painted brushwork, lighting, composition and outer background. Do not remove the parchment's brown squiggles. No new objects, no new sound marks, no text. Square artwork, same framing.
+
+TRANSPARENT ICON
+Use case: precise-object-edit.
+Input image 1 is the transparent in-game Hear Ye bell icon, the edit target.
+Make ONE precise change: remove the TWO floating golden curved sound-wave arcs to the upper right of the bell, replacing them with genuine alpha transparency. Keep only the painted brass hand bell and wooden handle.
+Preserve the bell exactly: same diagonal angle, shape, proportions, colors, brushwork, brass highlights, interior, clapper, scale and position on the square canvas. Preserve the existing generous transparent margins and keep the subject comfortably inside a centered circle. Do not enlarge the bell to fill the removed arcs. Background must be genuinely transparent with alpha zero in empty areas. No new objects, no shadow outside the bell, no parchment, frame, sound strokes, motion marks, text, letters or watermark.
+
+BANNER
+Use case: precise-object-edit.
+Input image 1 is the Hear Ye town-square banner, the edit target.
+Make ONE precise local change: remove the TWO golden curved sound-wave arcs floating just above and to the RIGHT of the small raised brass hand bell in the upper-left portion of the image. Replace only those arcs with the matching blue dusk sky and subtle background paint. Leave the actual brass bell untouched.
+Preserve all other artwork and layout: crier, pose, bell, parchment, crowd, fountain, stalls, architecture, lighting, brushwork, colors and the large quiet slate-blue area on the right. No new text, objects, motion strokes or symbols. Maintain the original wide 3.2:1 banner composition, target 1280x400.
+

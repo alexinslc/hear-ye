@@ -1,0 +1,28 @@
+HEAR YE — ART GENERATION PROMPTS
+Created with the built-in image_gen tool.
+
+PROJECT LOGO
+Use case: logo-brand.
+Asset type: original square project logo for Hear Ye, a fantasy multiplayer-game chat addon. Final deliverable 1024x1024 PNG, square.
+Create the artwork only, no typography. A polished brass hand bell with a warm dark wooden handle, tilted mid-swing so it clearly reads as ringing, and two or three soft bold curved sound strokes. A curl of cream parchment unrolls behind and beneath it with only a few loose abstract squiggle strokes; absolutely no letters or readable writing. Frame the subject in a round badge with a substantial worn bronze rim, centered on a deep slate-blue square background.
+Hand-painted fantasy illustration with chunky shapes, strong dark outlines through painted shading, bold readable silhouette, visible tasteful brushwork. Warm, friendly, a little lively, inviting rather than urgent. Warm lamplight glinting on the bell is the one bright focus. Brass, cream parchment, slate blue palette; restrained polished bronze details. Bell dominates, clear at 64x64. Keep the badge and all sound strokes comfortably inside the canvas; spare background.
+Entirely original design. No text anywhere, no fake lettering, no title, no watermark. No game logos, faction or class crests, official game icons or interface art, speech bubbles, mail icons, notification badges, red alerts, sirens, faces, recognizable game characters, copied art or other addon logos.
+
+IN-GAME ICON
+Use case: precise-object-edit.
+Asset type: simplified in-game addon icon, square PNG with a genuinely transparent background; final delivery 512x512.
+Input image 1 is the reference and edit target: preserve this exact bell design and painted style. Extract and simplify the brass bell with its dark wood handle, in the same diagonal mid-ring pose and warm golden illumination. Keep just the bell plus two bold curved golden sound strokes to its right. Remove the parchment, round bronze frame and slate blue background completely. Simplify minor texture so the strong brass silhouette and wooden handle remain legible at 64x64. Keep the whole composition comfortably inside an imaginary centered circle of diameter 82% of the canvas, with generous transparent margin on every side, so circular corner crops cannot clip it. Center the combined bell and sound strokes. Use true alpha transparency, no solid background, no checkerboard pattern painted into the artwork. No text, no letters, no watermark, no additional objects, no game logos or official interface symbols.
+
+ICON MARGIN REFINEMENT
+Use case: precise-object-edit.
+Input image 1 is the edit target, the transparent bell icon. Preserve the exact painted brass bell, wooden handle, diagonal pose and two golden sound strokes. Make just this correction: reduce the entire bell-and-sound-stroke group to 78% of its present scale, and center it on the same square transparent canvas. This is an icon safety-margin adjustment: every visible pixel of the subject must lie inside an imaginary centered circle with diameter 80% of the canvas. Leave wide clear alpha margins around the artwork. Remove any isolated stray pixels outside the subject. Keep the edges clean. TRUE transparent background with alpha exactly zero in the empty margins, not a painted checkerboard, black or white background. No parchment, frame, additional objects, text or lettering.
+
+BANNER
+Use case: illustration-story.
+Asset type: panoramic addon page banner. Required final aspect ratio 3.2:1, 1280x400 PNG. Compose as a very wide shallow horizontal scene, edge-to-edge art.
+Input image 1 is a STYLE AND PALETTE REFERENCE ONLY: match its hand-painted chunky fantasy brushwork, polished brass, cream parchment and deep slate blue; do not include its badge or giant floating bell.
+Scene: a small generic fantasy market town square at dusk, warm lanterns lighting up, friendly and lively. On the LEFT THIRD, a town crier stands on the broad low steps of a small stone fountain, seen in side profile, raising and ringing a brass hand bell with a wooden handle, while holding unrolled cream parchment in the other hand. Clear gesture and silhouette. A few generic townsfolk on the left and toward center turn to listen. Simple cloaks and ordinary market clothing, no armor, small painterly faces with no features in focus. Slate-blue timber and plaster buildings and a few quiet lanterns frame the square.
+Composition is critical: the crier, entire raised bell and parchment, fountain and listeners must fit comfortably within the shallow banner height, with headroom. Left half holds the story. Right 45 percent is deliberately low detail, dark slate-blue open dusk atmosphere and softly receding square with uninterrupted quiet negative space for a title to be added later. No bright highlights or busy figures in this right title area. Landscape artwork, no panels or borders.
+Warm lamplight on the bell and parchment is the focal light; restrained amber lanterns elsewhere, deep blue dusk shadows. Hand-painted fantasy illustration, bold readable shapes, gently textured brushstrokes. Warm invitation, never an alarm.
+Absolutely NO TEXT anywhere, no title, lettering, fake glyphs, shop signs with writing, parchment letters, watermark, logos or badges. No recognizable game characters, game races, official art, faction/class crests, official UI icons, red alerts, sirens, shouting face, phone notifications or speech bubbles. Entirely original fantasy town.
+

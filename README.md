@@ -2,7 +2,7 @@
 
 A compact chat window for World of Warcraft: Forever. It keeps party, nearby, guild, and whisper conversations in one small window with a sidebar, so new players stop missing messages. The chat controls stay the game's own.
 
-**Status: early testing (0.1.0).** Hear Ye can replace the default chat window, and the sidebar follows your group, guild and channels. History is saved per character for 7 days. Test results are in [docs/phase-1-record.md](docs/phase-1-record.md), [docs/phase-2-record.md](docs/phase-2-record.md), [docs/phase-3-record.md](docs/phase-3-record.md), [docs/phase-4-record.md](docs/phase-4-record.md), and the full plan is in [docs/hear-ye-build-plan.md](docs/hear-ye-build-plan.md).
+**Status: early testing (0.2.0).** Hear Ye can replace the default chat window, and the sidebar follows your group, guild and channels. History is saved per character for 7 days. Test results are in [docs/phase-1-record.md](docs/phase-1-record.md), [docs/phase-2-record.md](docs/phase-2-record.md), [docs/phase-3-record.md](docs/phase-3-record.md), [docs/phase-4-record.md](docs/phase-4-record.md), and the full plan is in [docs/hear-ye-build-plan.md](docs/hear-ye-build-plan.md).
 
 ## Install
 
