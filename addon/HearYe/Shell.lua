@@ -53,14 +53,40 @@ local function SavePosition()
 	ns.db.width, ns.db.height = frame:GetSize()
 end
 
--- First placement: exactly where the default chat window sits.
+-- Bars that sit low on the screen. Hear Ye is drawn under everything, so
+-- its first placement keeps clear of any of these it would overlap.
+local LOW_BARS = {
+	"MainActionBar", "MainMenuBar", "MultiBarBottomLeft", "MultiBarBottomRight",
+	"StanceBar", "StanceBarFrame", "PetActionBar", "PossessActionBar", "PossessBarFrame",
+}
+
+-- The lowest a window from left to right can sit without covering a bar.
+local function ClearOfBars(left, right, bottom)
+	local uiScale = UIParent:GetEffectiveScale()
+	for _, name in ipairs(LOW_BARS) do
+		local bar = _G[name]
+		if bar and bar.IsVisible and bar:IsVisible() and bar:GetTop() and bar:GetLeft() then
+			local scale = bar:GetEffectiveScale() / uiScale
+			local barLeft, barRight, barTop = bar:GetLeft() * scale, bar:GetRight() * scale, bar:GetTop() * scale
+			if barRight > left and barLeft < right and barTop > bottom then
+				bottom = barTop + 4
+			end
+		end
+	end
+	return bottom
+end
+
+-- First placement: where the default chat window sits, nudged up above any
+-- action, stance or aura bar underneath it.
 local function DefaultPosition()
 	local chat = ChatFrame1
+	local x, y = 32, 96
 	if chat and chat:GetLeft() and chat:GetBottom() then
 		local scale = chat:GetEffectiveScale() / UIParent:GetEffectiveScale()
-		return "BOTTOMLEFT", "BOTTOMLEFT", chat:GetLeft() * scale - 6, chat:GetBottom() * scale - 34
+		x, y = chat:GetLeft() * scale - 6, chat:GetBottom() * scale - 34
 	end
-	return "BOTTOMLEFT", "BOTTOMLEFT", 32, 96
+	y = ClearOfBars(x, x + (ns.db.width or 500), y)
+	return "BOTTOMLEFT", "BOTTOMLEFT", x, y
 end
 
 local function ApplyPosition()
@@ -351,8 +377,6 @@ function Shell:Create()
 	sidebar:SetWidth(SIDEBAR_WIDTH)
 
 	inputArea = CreateFrame("Frame", nil, frame)
-	inputArea:SetPoint("BOTTOMLEFT", sidebar, "BOTTOMRIGHT", 4, 0)
-	inputArea:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -8, 6)
 	inputArea:SetHeight(INPUT_HEIGHT)
 	-- Drawn above the native edit box: with chatStyle "im" the box stays on
 	-- screen, faded, between messages, and this reads as its placeholder.
@@ -370,9 +394,9 @@ function Shell:Create()
 	hint:SetWordWrap(false)
 
 	local paneInset = ns.NewInset(frame)
-	paneInset:SetPoint("TOP", frame, "TOP", 0, self.styled and -28 or -HEADER_HEIGHT - 4)
-	paneInset:SetPoint("LEFT", sidebar, "RIGHT", 4, 0)
-	paneInset:SetPoint("BOTTOMRIGHT", inputArea, "TOPRIGHT", 0, 2)
+	self.paneInset = paneInset
+	self:CreateListToggle()
+	self:ApplySidebar()
 	-- Conversation header: who or where, and a line of context.
 	local paneHeader = CreateFrame("Frame", nil, paneInset)
 	paneHeader:SetPoint("TOPLEFT", 8, -5)
@@ -438,6 +462,15 @@ function Shell:Create()
 	end)
 	ns.Conversations:Init()
 	self:SetLocked(ns.db.locked)
+	-- Action bars take their Edit Mode places a moment after login. Until
+	-- you move the window yourself, place it again once they have.
+	if C_Timer then
+		C_Timer.After(3, function()
+			if not ns.db.position then
+				ApplyPosition()
+			end
+		end)
+	end
 end
 
 -- Two kinds of chrome. Backgrounds (the window's fill and the marble panels)
@@ -464,6 +497,7 @@ local function Pieces()
 	add(art, frame.CloseButton)
 	add(art, settingsButton)
 	add(art, Shell.grip)
+	add(art, Shell.listToggle)
 	add(art, Shell.chrome.rule)
 	for _, inset in ipairs(Shell.chrome.insets) do
 		add(art, inset.NineSlice)
@@ -545,6 +579,64 @@ function Shell:ApplyOpacity()
 		lastHover = GetTime()
 		PaintChrome(1)
 	end
+end
+
+-- The conversation list can be hidden for more room to read and type. A
+-- button beside the portrait hides and shows it; while it's hidden, the
+-- unread total sits next to the button so nothing goes unnoticed.
+function Shell:CreateListToggle()
+	local toggle = CreateFrame("Button", nil, frame)
+	toggle:SetSize(24, 24)
+	toggle:SetPoint("TOPLEFT", frame, "TOPLEFT", self.styled and 58 or 6, self.styled and -31 or -HEADER_HEIGHT)
+	toggle:SetHighlightTexture("Interface\\Buttons\\UI-Common-MouseHilight", "ADD")
+	toggle:SetScript("OnClick", function()
+		ns.db.sidebarHidden = not ns.db.sidebarHidden
+		local sound = SOUNDKIT and SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON
+		if sound then
+			PlaySound(sound)
+		end
+		Shell:ApplySidebar()
+		Shell:Refresh()
+		if GameTooltip:IsOwned(toggle) then
+			toggle:GetScript("OnEnter")(toggle)
+		end
+	end)
+	toggle:SetScript("OnEnter", function(self)
+		GameTooltip:SetOwner(self, "ANCHOR_TOP")
+		GameTooltip:SetText(ns.db.sidebarHidden and "Show conversations" or "Hide conversations")
+		GameTooltip:AddLine("More room for messages while it's hidden.", 0.8, 0.8, 0.8, true)
+		GameTooltip:Show()
+	end)
+	toggle:SetScript("OnLeave", GameTooltip_Hide)
+	toggle.label = toggle:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+	toggle.label:SetPoint("LEFT", toggle, "RIGHT", 2, 0)
+	toggle.pill = CreatePill(toggle)
+	toggle.pill:SetPoint("LEFT", toggle, "RIGHT", 2, 0)
+	self.listToggle = toggle
+end
+
+function Shell:ApplySidebar()
+	local hidden = ns.db.sidebarHidden
+	local toggle = self.listToggle
+	local top = self.styled and -28 or -HEADER_HEIGHT - 4
+	sidebar:SetShown(not hidden)
+	inputArea:ClearAllPoints()
+	self.paneInset:ClearAllPoints()
+	if hidden then
+		-- Below the portrait and the button, across the whole window.
+		inputArea:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 8, 6)
+		self.paneInset:SetPoint("TOPLEFT", frame, "TOPLEFT", 8, self.styled and -60 or top - 26)
+	else
+		inputArea:SetPoint("BOTTOMLEFT", sidebar, "BOTTOMRIGHT", 4, 0)
+		self.paneInset:SetPoint("TOP", frame, "TOP", 0, top)
+		self.paneInset:SetPoint("LEFT", sidebar, "RIGHT", 4, 0)
+	end
+	inputArea:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -8, 6)
+	self.paneInset:SetPoint("BOTTOMRIGHT", inputArea, "TOPRIGHT", 0, 2)
+	local arrow = hidden and "NextPage" or "PrevPage"
+	toggle:SetNormalTexture("Interface\\Buttons\\UI-SpellbookIcon-" .. arrow .. "-Up")
+	toggle:SetPushedTexture("Interface\\Buttons\\UI-SpellbookIcon-" .. arrow .. "-Down")
+	toggle.label:SetText(hidden and "" or "Conversations")
 end
 
 function Shell:IsActive()
@@ -750,6 +842,18 @@ function Shell:Refresh()
 	end
 	for i = sectionCount + 1, #sections do
 		sections[i]:Hide()
+	end
+
+	-- With the list hidden, its unread total shows beside the toggle.
+	if self.listToggle then
+		local total, loud = 0, false
+		if ns.db.sidebarHidden then
+			for _, group in ipairs(order) do
+				total = total + group.unread
+				loud = loud or group.loud
+			end
+		end
+		self.listToggle.pill:SetCount(total, not loud)
 	end
 
 	local selected = C:GetSelected()

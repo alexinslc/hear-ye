@@ -25,6 +25,8 @@ local STATE_EVENTS = {
 	"PLAYER_REGEN_DISABLED", "PLAYER_REGEN_ENABLED",
 }
 
+local OWN_PREFIX = "Hear Ye|r: "
+
 local OUTGOING = { WHISPER_INFORM = true, BN_WHISPER_INFORM = true }
 local BNET = { BN_WHISPER = true, BN_WHISPER_INFORM = true }
 local WHISPER = { WHISPER = true, WHISPER_INFORM = true }
@@ -261,7 +263,14 @@ local function OnDefaultChatLine(_, text, r, g, b, _, _, _, event, eventArgs)
 	end
 	local ok, err = pcall(function()
 		C:AddLine(conv, text, r, g, b)
-		Deliver(conv, text, r or 1, g or 1, b or 1, not conv.quiet)
+		-- Game lines count as unread too (on a grey pill), so a reply to
+		-- something you did, like a /who result, doesn't go unnoticed. Hear
+		-- Ye's own lines don't: they're also shown where you're reading.
+		local counts = true
+		if ns.CanAccess(text) and type(text) == "string" and text:find(OWN_PREFIX, 1, true) then
+			counts = false
+		end
+		Deliver(conv, text, r or 1, g or 1, b or 1, counts)
 	end)
 	if not ok and not Messages.copyErrorLogged then
 		Messages.copyErrorLogged = true

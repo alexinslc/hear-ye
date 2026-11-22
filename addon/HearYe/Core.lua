@@ -20,6 +20,7 @@ local defaults = {
 	opacity = 0.5,
 	fadeBackground = true, -- hide the background when the mouse is away, like the default chat
 	groupSound = "none", -- a sound for new party, raid and guild messages
+	sidebarHidden = false, -- the conversation list, hidden for more room
 }
 
 -- Proposed bounds for saved history; not yet tuned in play.

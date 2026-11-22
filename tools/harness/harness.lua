@@ -448,6 +448,28 @@ section("The window", function()
 	Shell:Refresh()
 end)
 
+section("Hiding the conversation list", function()
+	local S = first
+	local Shell = S.ns.Shell
+	Shell.listToggle:GetScript("OnClick")()
+	check("the list hides", S.ns.db.sidebarHidden == true)
+	S.chatEvent("CHAT_MSG_WHISPER", "still there?", "Brana Tester-Forever", { guid = "Player-1-00000002" })
+	check("unread shows beside the button while hidden", Shell.listToggle.pill:IsShown())
+	Shell.listToggle:GetScript("OnClick")()
+	check("the list comes back", S.ns.db.sidebarHidden == false and not Shell.listToggle.pill:IsShown())
+end)
+
+section("Game replies count as unread", function()
+	local S = first
+	local C = S.ns.Conversations
+	local game = C:Get("game")
+	local before = game.unread
+	S.env.ChatFrame1:AddMessage("Brana Tester: Level 12 Dwarf Paladin - Dun Morogh", 1, 1, 0)
+	check("a system line counts as unread in Game", game.unread == before + 1, game.unread)
+	S.env.ChatFrame1:AddMessage("|cffd9b36cHear Ye|r: Hidden.", 1, 1, 1)
+	check("Hear Ye's own lines don't", game.unread == before + 1, game.unread)
+end)
+
 section("Clicking links", function()
 	local S = first
 	local pane = S.ns.Messages.frame
@@ -486,7 +508,7 @@ section("Reloading keeps history", function()
 		if c.chatType == "WHISPER" then conv = c end
 	end
 	check("the whisper row comes back", conv ~= nil)
-	check("its lines come back", lineCount(conv) == 2, lineCount(conv))
+	check("its lines come back", lineCount(conv) == 3, lineCount(conv))
 	S.logout()
 	check("a second save keeps it", hasLine(conv, "want to group"))
 end)
