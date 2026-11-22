@@ -923,9 +923,6 @@ local CHANNEL_TAGS = {
 }
 
 local function ShortTag(conv)
-	if conv.archiveOf then
-		return "Old " .. (GROUP_TAGS[conv.archiveOf] or "")
-	end
 	if conv.group and GROUP_TAGS[conv.group] then
 		return GROUP_TAGS[conv.group]
 	end
@@ -1008,7 +1005,7 @@ function Shell:Refresh()
 		local available = C:IsAvailable(conv)
 		local sendable = conv.chatType ~= nil and not conv.readOnly
 		-- Destinations you can't use leave the list, unless you're reading one.
-		-- Earlier sessions and read-only rows stay so their history is reachable.
+		-- Read-only rows stay so their history is reachable.
 		if available or not sendable or conv.key == C.selectedKey then
 			local sectionKey = conv.sort >= 30 and "whispers" or "chat"
 			local group = groups[sectionKey]

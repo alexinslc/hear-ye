@@ -23,7 +23,6 @@ local MAX_CHANNELS = (Constants and Constants.ChatFrameConstants and Constants.C
 
 local byKey = {}
 local activityCounter = 0
-local sessionCounter = 0
 Conversations.selectedKey = "nearby"
 
 local function InHomeGroup()
@@ -39,13 +38,12 @@ local function InInstanceGroup()
 end
 
 -- One conversation per destination. A group's conversation is a session: when
--- you leave, it becomes a read-only "Earlier" row and the next group starts
--- fresh, so a new party never inherits the old one as its recipient.
+-- you leave, its lines are cleared and the next group starts fresh.
 local GROUPS = {
 	nearby = { label = "Say", chatType = "SAY", sort = 1 },
-	party = { label = "Party", chatType = "PARTY", sort = 2, available = InHomeGroup, session = true, earlier = "Earlier party" },
-	raid = { label = "Raid", chatType = "RAID", sort = 3, available = InHomeRaid, session = true, earlier = "Earlier raid" },
-	instance = { label = "Instance", chatType = "INSTANCE_CHAT", sort = 4, available = InInstanceGroup, session = true, earlier = "Earlier instance" },
+	party = { label = "Party", chatType = "PARTY", sort = 2, available = InHomeGroup, session = true },
+	raid = { label = "Raid", chatType = "RAID", sort = 3, available = InHomeRaid, session = true },
+	instance = { label = "Instance", chatType = "INSTANCE_CHAT", sort = 4, available = InInstanceGroup, session = true },
 	-- No "former guild": the Guild row is there while you're in a guild and
 	-- gone when you aren't. Joining a different guild starts it empty.
 	guild = { label = "Guild", chatType = "GUILD", sort = 5, available = IsInGuild },
@@ -124,32 +122,18 @@ end
 -- Group sessions
 ---------------------------------------------------------------------------
 
--- Turn a group conversation that ended into a read-only "Earlier" row.
-local function Archive(conv)
-	local group = GROUPS[conv.group]
-	sessionCounter = sessionCounter + 1
-	local newKey = conv.group .. "@" .. sessionCounter
-
-	-- Keep one earlier session per group, unless you're reading an older one.
-	for key, other in pairs(byKey) do
-		if other.archiveOf == conv.group and key ~= Conversations.selectedKey then
-			byKey[key] = nil
-		end
-	end
-
-	byKey[conv.key] = nil
-	conv.key = newKey
-	conv.label = group.earlier
-	conv.readOnly = true
-	conv.archiveOf = conv.group
-	conv.sort = group.sort + 0.5
-	byKey[newKey] = conv
-
-	if Conversations.selectedKey == conv.group then
-		Conversations.selectedKey = newKey
-	end
+-- A group conversation that ended starts over empty, like the default chat
+-- keeps no party of its own: the next group never sees the last one's lines
+-- or inherits it as a recipient. The row leaves the list until you're in a
+-- group again.
+local function EndSession(conv)
 	ns.Input:OnDestinationEnded(conv)
-	ns:Log("%s ended; kept as %s (%d lines)", conv.group, newKey, #conv.lines)
+	conv.lines, conv.unread, conv.members = {}, 0, nil
+	if Conversations.selectedKey == conv.key then
+		Conversations.selectedKey = "nearby"
+		ns.Messages:Render()
+	end
+	ns:Log("%s ended; its lines were cleared", conv.key)
 end
 
 function Conversations:ReconcileGroups()
@@ -165,8 +149,7 @@ function Conversations:ReconcileGroups()
 			if conv and conv.pendingSession and Conversations.ready then
 				conv.pendingSession = nil
 				if now and group.session and conv.members and not Conversations:SharesMembers(conv.members) and #conv.lines > 0 then
-					Archive(conv)
-					conv = CreateGroup(key)
+					EndSession(conv)
 				end
 			end
 			-- The guild is known by its name. A different guild than the saved
@@ -188,10 +171,8 @@ function Conversations:ReconcileGroups()
 			end
 			-- Until that's decided, leave a restored group alone rather than end it early.
 			if conv and not conv.pendingSession then
-				if conv.wasAvailable and not now and group.session and #conv.lines > 0 then
-					Archive(conv)
-				elseif conv.wasAvailable and not now and group.session then
-					-- Nothing was said; no need to keep an empty "Earlier" row.
+				if conv.wasAvailable and not now and group.session then
+					EndSession(conv)
 					conv.wasAvailable = false
 				else
 					conv.wasAvailable = now
@@ -733,8 +714,9 @@ function Conversations:Restore()
 	local restored = 0
 	local inOrder = {}
 	for key, s in pairs(saved.convs) do
-		-- Former guild rows from older versions aren't brought back.
-		if type(key) == "string" and type(s) == "table" and type(s.lines) == "table" and s.archiveOf ~= "guild" and KEEPS_HISTORY[s.chatType] then
+		-- Earlier party, raid and former guild rows from older versions
+		-- aren't brought back.
+		if type(key) == "string" and type(s) == "table" and type(s.lines) == "table" and not s.archiveOf and KEEPS_HISTORY[s.chatType] then
 			local conv = Create(key, {})
 			inOrder[#inOrder + 1] = conv
 			for _, field in ipairs(SAVED_FIELDS) do
@@ -771,10 +753,6 @@ function Conversations:Restore()
 				conv.wasAvailable = true
 				conv.pendingSession = group.session or nil
 			end
-			local n = tonumber(key:match("@(%d+)$"))
-			if n and n > sessionCounter then
-				sessionCounter = n
-			end
 			restored = restored + 1
 		end
 	end
@@ -798,7 +776,7 @@ function Conversations:Restore()
 end
 
 -- Forget saved and shown history for this character. Rows for places you
--- can still chat stay; earlier sessions and whisper rows go.
+-- can still chat stay; whisper rows go.
 function Conversations:ClearHistory()
 	for key, conv in pairs(byKey) do
 		if conv.readOnly or conv.chatType == "WHISPER" or conv.chatType == "BN_WHISPER" or (conv.chatType == "CHANNEL" and not conv.joined) then

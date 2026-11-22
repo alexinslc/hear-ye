@@ -431,7 +431,7 @@ function Setup:Show()
 end
 
 StaticPopupDialogs["HEARYE_CLEAR_HISTORY"] = {
-	text = "Clear Hear Ye's saved messages for this character? Whisper rows and earlier sessions are removed too. This can't be undone.",
+	text = "Clear Hear Ye's saved messages for this character? Whisper rows are removed too. This can't be undone.",
 	button1 = YES or "Yes",
 	button2 = NO or "No",
 	OnAccept = function()

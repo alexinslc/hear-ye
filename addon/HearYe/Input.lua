@@ -270,8 +270,8 @@ function Input:OnDestinationEnded(conv)
 	end
 	local chatType = editBox:GetChatType()
 	local matches
-	if conv.archiveOf then
-		matches = GROUP_CHAT_TYPE[conv.archiveOf] == chatType
+	if conv.group then
+		matches = GROUP_CHAT_TYPE[conv.group] == chatType
 	elseif conv.chatType == "CHANNEL" and chatType == "CHANNEL" then
 		local key = ns.Conversations:KeyForEditBox(editBox)
 		matches = key == nil or key == conv.key
@@ -280,7 +280,7 @@ function Input:OnDestinationEnded(conv)
 	if matches and text ~= "" and text:sub(1, 1) ~= "/" then
 		conv.draft = text
 		editBox:SetText("")
-		ns:Print("%s ended. Your unsent message is saved there; pick a conversation to send it.", conv.label)
+		ns:Print("%s ended. Your unsent message wasn't sent; it comes back in your next %s.", conv.label, conv.label:lower())
 	end
 end
 

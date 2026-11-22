@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.2
+
+- Leaving a party, raid or instance group no longer leaves an "Earlier" row behind. The row clears and the next group starts fresh.
+
 ## 0.4.1
 
 - Loot, money and other game messages now show in whichever conversation is open, not only in the Game row.

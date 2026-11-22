@@ -854,6 +854,35 @@ section("A reload keeps the guild session", function()
 	check("an old Former guild row is dropped", O.ns.Conversations:Get("guild@4") == nil)
 end)
 
+section("Leaving a party leaves no Earlier row", function()
+	local S = Boot(nil)
+	S.inGroup = true
+	S.login()
+	S.runTimers()
+	local C = S.ns.Conversations
+	S.chatEvent("CHAT_MSG_PARTY", "pull in 5", "Brana Tester-Forever", { guid = "Player-1-00000002" })
+	C:Select("party", false)
+	S.inGroup = false
+	S.fire("GROUP_ROSTER_UPDATE")
+	local earlier = false
+	for _, c in ipairs(C:Sorted()) do
+		if c.archiveOf or c.readOnly then earlier = true end
+	end
+	check("no Earlier party row", not earlier)
+	check("the party's lines are gone", #C:Get("party").lines == 0)
+	check("reading it moves you to Say", C.selectedKey == "nearby", C.selectedKey)
+	S.inGroup = true
+	S.fire("GROUP_ROSTER_UPDATE")
+	check("the next party starts empty", #C:Get("party").lines == 0)
+
+	-- Old saved files with an Earlier party row don't bring it back.
+	local old = S.logout()
+	old.characters["Player-1-00000001"].convs["party@2"] = { label = "Earlier party", archiveOf = "party", group = "party", chatType = "PARTY", readOnly = true, lines = { { text = "x", t = S.now } } }
+	local O = Boot(old)
+	O.login()
+	check("an old Earlier party row is dropped", O.ns.Conversations:Get("party@2") == nil)
+end)
+
 section("Old and damaged saved files", function()
 	local S = Boot({ schema = 1, opacity = 0.92 })
 	S.login()
