@@ -282,14 +282,17 @@ local function OnDefaultChatLine(_, text, r, g, b, _, _, _, event, eventArgs)
 	end
 	local ok, err = pcall(function()
 		C:AddLine(conv, text, r, g, b)
-		-- Game lines count as unread too (on a grey pill), so a reply to
-		-- something you did, like a /who result, doesn't go unnoticed. Hear
-		-- Ye's own lines don't: they're also shown where you're reading.
-		local counts = true
-		if ns.CanAccess(text) and type(text) == "string" and text:find(OWN_PREFIX, 1, true) then
-			counts = false
+		local own = ns.CanAccess(text) and type(text) == "string" and text:find(OWN_PREFIX, 1, true) ~= nil
+		-- Game lines (loot, money, system replies) also show in whatever row
+		-- is open, like the default chat, without being saved there. The
+		-- Game row keeps them all. Hear Ye's own lines are already shown
+		-- there by Print.
+		local passing = conv.key == "game" and C.selectedKey ~= "game" and smf
+		if passing and not own then
+			smf:AddMessage(text, r or 1, g or 1, b or 1)
+			ns.Shell:NoteActivity()
 		end
-		Deliver(conv, text, r or 1, g or 1, b or 1, counts)
+		Deliver(conv, text, r or 1, g or 1, b or 1, not passing and not own)
 	end)
 	if not ok and not Messages.copyErrorLogged then
 		Messages.copyErrorLogged = true

@@ -613,15 +613,27 @@ section("Clicking a row", function()
 	C:Select("nearby", false)
 end)
 
-section("Game replies count as unread", function()
+section("Game lines show in the open row", function()
 	local S = first
 	local C = S.ns.Conversations
+	local smf = S.ns.Messages.frame
 	local game = C:Get("game")
-	local before = game.unread
-	S.env.ChatFrame1:AddMessage("Brana Tester: Level 12 Dwarf Paladin - Dun Morogh", 1, 1, 0)
-	check("a system line counts as unread in Game", game.unread == before + 1, game.unread)
+	local party = C:EnsureGroup("party")
+	C:Select(party.key, false)
+	local partyLines, gameLines, before = #party.lines, #game.lines, game.unread
+	local shown = smf:GetNumMessages()
+	S.env.ChatFrame1:AddMessage("You receive loot: [Linen Cloth].", 0, 0.67, 0)
+	check("loot shows in the open row", smf:GetNumMessages() == shown + 1)
+	check("but isn't saved to it", #party.lines == partyLines)
+	check("the Game row still keeps it", #game.lines == gameLines + 1)
+	check("and it isn't unread there, you saw it", game.unread == before, game.unread)
 	S.env.ChatFrame1:AddMessage("|cffd9b36cHear Ye|r: Hidden.", 1, 1, 1)
-	check("Hear Ye's own lines don't", game.unread == before + 1, game.unread)
+	check("Hear Ye's own lines aren't shown twice", smf:GetNumMessages() == shown + 1)
+	C:Select("game", false)
+	local count = smf:GetNumMessages()
+	S.env.ChatFrame1:AddMessage("Brana Tester: Level 12 Dwarf Paladin - Dun Morogh", 1, 1, 0)
+	check("with Game open, they show once", smf:GetNumMessages() == count + 1)
+	C:Select("nearby", false)
 end)
 
 section("Hovering", function()
