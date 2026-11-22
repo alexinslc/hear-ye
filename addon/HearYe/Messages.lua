@@ -117,7 +117,7 @@ local function FormatLine(msgType, text, sender, language, lineID, guid, bnetID,
 	local display
 	if BNET[msgType] and ns.db.hideRealNames then
 		local C = ns.Conversations
-		display = C.ShortBattleTag(C.BattleTagFor(bnetID))
+		display = C.CharacterFor(bnetID) or C.ShortBattleTag(C.BattleTagFor(bnetID))
 	elseif BNET[msgType] then
 		display = sender
 	else

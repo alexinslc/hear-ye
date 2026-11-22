@@ -481,6 +481,24 @@ section("Battle.net friends by BattleTag", function()
 	S.ns.db.hideRealNames = true
 	C:RelabelBNet()
 	check("hiding them again goes back to the BattleTag", conv.label == "WhiteFinch")
+	-- Playing WoW on a character: the character's name, the same row.
+	S.env.C_BattleNet.GetAccountInfoByID = function(id)
+		if id == 77 then
+			return { battleTag = "WhiteFinch#1368", accountName = "Real Person", bnetAccountID = 77,
+				gameAccountInfo = { isOnline = true, clientProgram = "WoW", characterName = "Aldric Emberheart", characterLevel = 23 } }
+		end
+	end
+	S.fire("BN_FRIEND_INFO_CHANGED")
+	check("a friend playing WoW shows by character name", conv.label == "Aldric Emberheart", conv.label)
+	S.chatEvent("CHAT_MSG_BN_WHISPER", "on my paladin now", "Real Person", { bnetID = 77 })
+	check("their messages show the character name", conv.lines[#conv.lines].text:find("Aldric Emberheart", 1, true) ~= nil)
+	check("and stay in the same row", C:Get("bn:whitefinch#1368") == conv)
+	S.env.C_BattleNet.GetAccountInfoByID = function(id)
+		if id == 77 then return { battleTag = "WhiteFinch#1368", accountName = "Real Person", bnetAccountID = 77,
+			gameAccountInfo = { isOnline = false } } end
+	end
+	S.fire("BN_FRIEND_INFO_CHANGED")
+	check("logged off, it's back to the BattleTag", conv.label == "WhiteFinch", conv.label)
 end)
 
 section("Secret values", function()

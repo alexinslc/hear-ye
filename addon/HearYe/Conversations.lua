@@ -395,6 +395,9 @@ local function LookupPerson(conv)
 end
 
 function Conversations:RefreshPerson(conv)
+	if conv.chatType == "BN_WHISPER" then
+		self:LabelBNet(conv) -- they may have switched characters or logged off
+	end
 	local level, source, className, classFile = LookupPerson(conv)
 	if level then
 		conv.level, conv.levelSource = level, source
@@ -432,6 +435,22 @@ local function ShortBattleTag(tag)
 	return tag and (tag:match("^([^#]+)") or tag) or "Battle.net friend"
 end
 Conversations.BattleTagFor = BattleTagFor
+
+-- The character a Battle.net friend is playing in WoW right now, if any.
+local WOW_CLIENT = BNET_CLIENT_WOW or "WoW"
+local function CharacterFor(bnetID)
+	if not (bnetID and C_BattleNet and C_BattleNet.GetAccountInfoByID) then
+		return nil
+	end
+	local ok, info = pcall(C_BattleNet.GetAccountInfoByID, bnetID)
+	local game = ok and info and info.gameAccountInfo
+	local name = game and game.isOnline and game.clientProgram == WOW_CLIENT and game.characterName
+	if type(name) == "string" and ns.CanAccess(name) and name ~= "" then
+		return name
+	end
+	return nil
+end
+Conversations.CharacterFor = CharacterFor
 Conversations.ShortBattleTag = ShortBattleTag
 
 -- Battle.net account IDs can change between sessions; the BattleTag doesn't.
@@ -457,12 +476,14 @@ function Conversations:EnsureBNet(bnetID, tokenName)
 	return conv, created
 end
 
--- A Battle.net friend's name in the list and header: the BattleTag while
--- "Hide friends' real names" is on (the default), their real name, as the
--- game gives it, when it's off.
+-- A Battle.net friend's name in the list and header. While "Hide friends'
+-- real names" is on (the default): the character they're playing, or their
+-- BattleTag. When it's off: their real name, as the game gives it.
 function Conversations:LabelBNet(conv)
 	local realName = not ns.db.hideRealNames and self:ResolveBNet(conv)
-	conv.label = realName or ShortBattleTag(conv.battleTag)
+	-- While they're playing WoW, the character they're on; otherwise the
+	-- BattleTag. The row stays the same conversation either way.
+	conv.label = realName or CharacterFor(conv.bnetID) or ShortBattleTag(conv.battleTag)
 	conv.fullName = conv.label -- the "#1234" part is only in the tooltip
 end
 
