@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.1
+
+- Loot, money and other game messages now show in whichever conversation is open, not only in the Game row.
+
 ## 0.4.0
 
 - The open conversation now fades out after 10 quiet seconds, like the default chat, and comes back when someone talks there or you hover or type.
