@@ -480,7 +480,10 @@ end
 -- real names" is on (the default): the character they're playing, or their
 -- BattleTag. When it's off: their real name, as the game gives it.
 function Conversations:LabelBNet(conv)
-	local realName = not ns.db.hideRealNames and self:ResolveBNet(conv)
+	-- Finds the friend by BattleTag first: after a reload the saved row has
+	-- no session ID yet, which is what says what they're playing.
+	local accountName = self:ResolveBNet(conv)
+	local realName = not ns.db.hideRealNames and accountName
 	-- While they're playing WoW, the character they're on; otherwise the
 	-- BattleTag. The row stays the same conversation either way.
 	conv.label = realName or CharacterFor(conv.bnetID) or ShortBattleTag(conv.battleTag)
@@ -827,6 +830,8 @@ function Conversations:Init()
 		C_Timer.After(3, function()
 			Conversations.ready = true
 			Conversations:ReconcileGroups()
+			-- The friends list has arrived by now: names and levels catch up.
+			Conversations:RefreshPeople()
 			ns.Input:PointAtSelected()
 			ns.Shell:Refresh()
 		end)
