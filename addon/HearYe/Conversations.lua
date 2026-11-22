@@ -426,6 +426,15 @@ local function BattleTagFor(bnetID)
 	return nil
 end
 
+-- Battle.net friends are shown by BattleTag, never by their real name: the
+-- name before the "#" in the list and in messages, the whole tag in the
+-- header and tooltip.
+local function ShortBattleTag(tag)
+	return tag and (tag:match("^([^#]+)") or tag) or "Battle.net friend"
+end
+Conversations.BattleTagFor = BattleTagFor
+Conversations.ShortBattleTag = ShortBattleTag
+
 -- Battle.net account IDs can change between sessions; the BattleTag doesn't.
 local function BNetKey(bnetID)
 	local tag = BattleTagFor(bnetID)
@@ -440,10 +449,13 @@ function Conversations:EnsureBNet(bnetID, tokenName)
 	local conv = byKey[key]
 	local created = false
 	if not conv then
-		conv = Create(key, { label = tokenName, fullName = tag or tokenName, chatType = "BN_WHISPER", sort = 30 })
+		conv = Create(key, { chatType = "BN_WHISPER", sort = 30 })
 		created = true
 	end
+	-- tellTarget is what the game needs to send the whisper; it's never shown.
 	conv.bnetID, conv.battleTag, conv.tellTarget = bnetID, tag or conv.battleTag, tokenName
+	conv.label = ShortBattleTag(conv.battleTag)
+	conv.fullName = conv.battleTag or conv.label
 	return conv, created
 end
 
@@ -702,6 +714,10 @@ function Conversations:Restore()
 			end
 			conv.lines = kept
 			conv.unread = tonumber(conv.unread) or 0
+			if conv.chatType == "BN_WHISPER" then
+				conv.label = ShortBattleTag(conv.battleTag)
+				conv.fullName = conv.battleTag or conv.label
+			end
 			conv.sort = tonumber(conv.sort) or 30
 			conv.label = conv.label or key
 			if conv.classFile then

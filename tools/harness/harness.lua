@@ -451,6 +451,24 @@ section("Whispers", function()
 	check("Say goes to the Say row", hasLine(C:Get("nearby"), "hello there"))
 end)
 
+section("Battle.net friends by BattleTag", function()
+	local S = first
+	local C = S.ns.Conversations
+	S.env.C_BattleNet.GetAccountInfoByID = function(id)
+		if id == 77 then return { battleTag = "WhiteFinch#1368", accountName = "Real Person", bnetAccountID = 77 } end
+	end
+	S.chatEvent("CHAT_MSG_BN_WHISPER", "hi from bnet", "Real Person", { bnetID = 77 })
+	local conv = C:Get("bn:whitefinch#1368")
+	check("a Battle.net row is named by BattleTag", conv and conv.label == "WhiteFinch", conv and conv.label)
+	check("its header name is the whole BattleTag", conv and conv.fullName == "WhiteFinch#1368")
+	local shown = conv and conv.lines[#conv.lines].text or ""
+	check("the message shows the BattleTag", shown:find("WhiteFinch", 1, true) ~= nil, shown)
+	check("the real name only stays inside the link", select(2, shown:gsub("Real Person", "")) <= 1, shown)
+	local visible = shown:gsub("|H.-|h", ""):gsub("|h", "")
+	check("the real name isn't in the visible text", not visible:find("Real Person", 1, true), visible)
+	check("whispers still go to the account", conv and conv.tellTarget == "Real Person")
+end)
+
 section("Secret values", function()
 	local S = first
 	local C = S.ns.Conversations

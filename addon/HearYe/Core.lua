@@ -3,7 +3,7 @@ local addonName, ns = ...
 _G.HearYe = ns
 
 ns.name = addonName
-ns.SCHEMA = 6
+ns.SCHEMA = 7
 
 -- Plain values; each is checked by type on load, so a damaged or old saved
 -- file falls back to the default instead of breaking the window.
@@ -41,6 +41,18 @@ local MIGRATIONS = {
 	[1] = function(db)
 		-- Schema 1 (Phases 1-3) had no saved history or settings.
 		db.characters = {}
+	end,
+	[6] = function(db)
+		-- Battle.net lines used to be saved under the friend's real name;
+		-- drop them. The rows come back, shown by BattleTag.
+		for _, character in pairs(type(db.characters) == "table" and db.characters or {}) do
+			for _, conv in pairs(type(character) == "table" and type(character.convs) == "table" and character.convs or {}) do
+				if type(conv) == "table" and conv.chatType == "BN_WHISPER" then
+					conv.lines = {}
+					conv.label = nil
+				end
+			end
+		end
 	end,
 	[5] = function(db)
 		-- The "Under my character" layout was removed.

@@ -112,7 +112,15 @@ local function FormatLine(msgType, text, sender, language, lineID, guid, bnetID,
 	-- Your own lines say "You", except in emotes, which read as sentences.
 	local mine = OUTGOING[msgType] or (guid and guid == playerGUID and not isEmote)
 
-	local display = BNET[msgType] and sender or ((Ambiguate and Ambiguate(sender, "short")) or sender)
+	-- Battle.net friends by BattleTag, not their real name. The name the game
+	-- gave stays only inside the link, where it's needed to whisper back.
+	local display
+	if BNET[msgType] then
+		local C = ns.Conversations
+		display = C.ShortBattleTag(C.BattleTagFor(bnetID))
+	else
+		display = (Ambiguate and Ambiguate(sender, "short")) or sender
+	end
 	local color = ClassInfo(guid)
 	display = Colorize(display, color)
 
