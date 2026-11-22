@@ -428,6 +428,25 @@ section("Commands", function()
 	check("/hearye clear asks first", ok and S.popup == "HEARYE_CLEAR_HISTORY", err or S.popup)
 end)
 
+section("The window", function()
+	local S = first
+	local Shell = S.ns.Shell
+	local frame = Shell.frame
+	frame.CloseButton:GetScript("OnClick")()
+	check("the close button hides the window", not frame:IsShown() and S.ns.db.shown == false)
+	S.slash("show")
+	check("/hearye show brings it back", frame:IsShown() and S.ns.db.shown == true)
+	Shell:ApplyOpacity()
+	check("the fade state is described", Shell:DescribeChrome():find("shown 100%%") ~= nil, Shell:DescribeChrome())
+	-- Closing a section keeps its rows out of the sidebar, and it's saved.
+	S.ns.db.collapsed.whispers = true
+	local okRefresh, err = pcall(Shell.Refresh, Shell)
+	check("a closed section refreshes", okRefresh, err)
+	check("a closed section is saved", S.ns.db.collapsed.whispers == true)
+	S.ns.db.collapsed.whispers = nil
+	Shell:Refresh()
+end)
+
 section("Saving on logout", function()
 	local db = first.logout()
 	local key = "Player-1-00000001"

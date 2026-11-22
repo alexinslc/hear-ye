@@ -82,6 +82,8 @@ local function ApplyDefaults(db)
 	db.opacity = Clamp(db.opacity, 0, 1, defaults.opacity)
 
 	db.characters = type(db.characters) == "table" and db.characters or {}
+	-- Sidebar sections you've closed, by key ("chat", "whispers").
+	db.collapsed = type(db.collapsed) == "table" and db.collapsed or {}
 	db.history = type(db.history) == "table" and db.history or {}
 	for key, value in pairs(HISTORY_DEFAULTS) do
 		db.history[key] = Clamp(db.history[key], 1, value * 4, value)

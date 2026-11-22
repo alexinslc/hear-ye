@@ -346,6 +346,9 @@ local function OnStateEvent(event)
 	C:ReconcileGroups()
 	if event ~= "GROUP_ROSTER_UPDATE" and event ~= "PLAYER_GUILD_UPDATE" then
 		C:ReconcileChannels()
+		-- Channels come back a moment after a reload; aim the box at the
+		-- selected channel once it exists again.
+		ns.Input:PointAtSelected()
 	end
 	local party, guild = IsInGroup(LE_PARTY_CATEGORY_HOME), IsInGuild()
 	if party ~= lastParty or guild ~= lastGuild then

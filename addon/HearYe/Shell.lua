@@ -6,11 +6,11 @@ local _, ns = ...
 local Shell = {}
 ns.Shell = Shell
 
-local SIDEBAR_WIDTH = 136
+local SIDEBAR_WIDTH = 150
 local HEADER_HEIGHT = 22
 local INPUT_HEIGHT = 30
 local ROW_HEIGHT = 18
-local SECTION_HEIGHT = 16
+local SECTION_HEIGHT = 20
 local MIN_WIDTH, MIN_HEIGHT = 360, 200
 local MAX_WIDTH, MAX_HEIGHT = 1200, 800
 local BRONZE = { 0.72, 0.55, 0.32 }
@@ -106,6 +106,53 @@ local function ShowRowTooltip(row)
 	GameTooltip:Show()
 end
 
+-- An unread count on a pill, like a chat app's badge: two round ends and a
+-- straight middle, so it stays a clean oval at any width. Red for messages
+-- to you and your groups, grey for busy public channels.
+local PILL_HEIGHT = 14
+local DISC = "Interface\\CharacterFrame\\TempPortraitAlphaMask"
+
+local function SetPill(pill, count, quiet)
+	if not count or count <= 0 then
+		pill:Hide()
+		return
+	end
+	pill.text:SetText(count > 99 and "99+" or tostring(count))
+	pill:SetWidth(math.max(PILL_HEIGHT, math.ceil(pill.text:GetStringWidth()) + 10))
+	local r, g, b, a = 0.78, 0.1, 0.08, 1
+	if quiet then
+		r, g, b, a = 0.32, 0.32, 0.32, 0.95
+	end
+	for _, piece in ipairs(pill.pieces) do
+		piece:SetVertexColor(r, g, b, a)
+	end
+	pill.text:SetTextColor(1, 1, 1)
+	pill:Show()
+end
+
+local function CreatePill(parent)
+	local pill = CreateFrame("Frame", nil, parent)
+	pill:SetHeight(PILL_HEIGHT)
+	local left = pill:CreateTexture(nil, "ARTWORK")
+	left:SetTexture(DISC)
+	left:SetSize(PILL_HEIGHT, PILL_HEIGHT)
+	left:SetPoint("LEFT")
+	local right = pill:CreateTexture(nil, "ARTWORK")
+	right:SetTexture(DISC)
+	right:SetSize(PILL_HEIGHT, PILL_HEIGHT)
+	right:SetPoint("RIGHT")
+	local middle = pill:CreateTexture(nil, "ARTWORK")
+	middle:SetTexture("Interface\\Buttons\\WHITE8X8")
+	middle:SetPoint("TOPLEFT", left, "TOP")
+	middle:SetPoint("BOTTOMRIGHT", right, "BOTTOM")
+	pill.pieces = { left, right, middle }
+	pill.text = pill:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+	pill.text:SetPoint("CENTER", 0, 0)
+	pill.SetCount = SetPill
+	pill:Hide()
+	return pill
+end
+
 local function CreateRow(index)
 	local row = CreateFrame("Button", nil, sidebar)
 	row:SetHeight(ROW_HEIGHT)
@@ -118,33 +165,23 @@ local function CreateRow(index)
 	row.selected:SetVertexColor(1, 0.82, 0.3, 0.55)
 	row.selected:SetAllPoints()
 
-	-- Unread count on a small round badge, so it can't be read as a level.
-	row.badgeBg = row:CreateTexture(nil, "ARTWORK")
-	row.badgeBg:SetPoint("RIGHT", row, "RIGHT", -3, 0)
-	row.badgeBg:SetSize(16, 14)
-	row.badgeBg:SetTexture("Interface\\Buttons\\WHITE8X8")
-	if row.badgeBg.SetMask then
-		pcall(row.badgeBg.SetMask, row.badgeBg, "Interface\\CharacterFrame\\TempPortraitAlphaMask")
-	end
-	row.badge = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-	row.badge:SetPoint("CENTER", row.badgeBg, "CENTER", 0, 0)
+	-- Unread count on a pill, so it can't be read as a level.
+	row.pill = CreatePill(row)
+	row.pill:SetPoint("RIGHT", row, "RIGHT", -3, 0)
 
 	-- Whispers show the other player's level, small and grey; "-" when unknown.
 	row.level = row:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
 	row.level:SetPoint("RIGHT", row, "RIGHT", -22, 0)
 
-	-- A small round marker: chat-type colour for channels, class colour for
-	-- people, grey when the class isn't known.
+	-- A small square marker, as Fireside Tales marks its stories: chat-type
+	-- colour for channels, class colour for people, grey when unknown.
 	row.dot = row:CreateTexture(nil, "ARTWORK")
-	row.dot:SetSize(7, 7)
-	row.dot:SetPoint("LEFT", row, "LEFT", 8, 0)
+	row.dot:SetSize(8, 8)
+	row.dot:SetPoint("LEFT", row, "LEFT", 16, 0)
 	row.dot:SetTexture("Interface\\Buttons\\WHITE8X8")
-	if row.dot.SetMask then
-		pcall(row.dot.SetMask, row.dot, "Interface\\CharacterFrame\\TempPortraitAlphaMask")
-	end
 
 	row.label = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-	row.label:SetPoint("LEFT", row.dot, "RIGHT", 6, 0)
+	row.label:SetPoint("LEFT", row.dot, "RIGHT", 5, 0)
 	row.label:SetPoint("RIGHT", row.level, "LEFT", -4, 0)
 	row.label:SetJustifyH("LEFT")
 	row.label:SetWordWrap(false)
@@ -160,9 +197,32 @@ local function CreateRow(index)
 	return row
 end
 
+-- A section header in the quest-log style: plus or minus, a gold name, and
+-- how many conversations it holds. A closed section with unread messages
+-- shows their total on a pill instead.
 local function CreateSection(index)
-	local section = sidebar:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-	section:SetJustifyH("LEFT")
+	local section = CreateFrame("Button", nil, sidebar)
+	section:SetHeight(SECTION_HEIGHT)
+	section:RegisterForClicks("LeftButtonUp")
+	section:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight", "ADD")
+	section.icon = section:CreateTexture(nil, "ARTWORK")
+	section.icon:SetSize(13, 13)
+	section.icon:SetPoint("LEFT", 2, 0)
+	section.label = section:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+	section.label:SetPoint("LEFT", section.icon, "RIGHT", 4, 0)
+	section.label:SetJustifyH("LEFT")
+	section.pill = CreatePill(section)
+	section.pill:SetPoint("RIGHT", -3, 0)
+	section.count = section:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+	section.count:SetPoint("RIGHT", -6, 0)
+	section:SetScript("OnClick", function(self)
+		ns.db.collapsed[self.key] = not ns.db.collapsed[self.key] or nil
+		local sound = SOUNDKIT and SOUNDKIT[ns.db.collapsed[self.key] and "IG_MAINMENU_OPTION_CHECKBOX_OFF" or "IG_MAINMENU_OPTION_CHECKBOX_ON"]
+		if sound then
+			PlaySound(sound)
+		end
+		Shell:Refresh()
+	end)
 	sections[index] = section
 	return section
 end
@@ -185,8 +245,36 @@ local function OpenMenu(owner)
 	end
 end
 
+local ICON = "Interface\\AddOns\\HearYe\\Textures\\Icon"
+
 function Shell:Create()
-	frame = CreateFrame("Frame", "HearYeFrame", UIParent, "BackdropTemplate")
+	-- The game's own window, the same one Fireside Tales uses: title bar,
+	-- round portrait, close button. A plain bronze frame stands in if the
+	-- client doesn't have the template.
+	local ok, made = pcall(CreateFrame, "Frame", "HearYeFrame", UIParent, "PortraitFrameTemplate")
+	if ok and made and made.SetTitle then
+		frame = made
+		frame:SetTitle("Hear Ye")
+		if frame.SetPortraitToAsset then
+			frame:SetPortraitToAsset(ICON)
+		end
+		self.styled = true
+	else
+		frame = CreateFrame("Frame", "HearYeFrame", UIParent, "BackdropTemplate")
+		ns.ApplyBackdrop(frame, ns.db.opacity)
+		local title = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+		title:SetPoint("TOP", 0, -8)
+		title:SetText("Hear Ye")
+		frame.CloseButton = CreateFrame("Button", nil, frame, "UIPanelCloseButton")
+		frame.CloseButton:SetPoint("TOPRIGHT", -2, -2)
+	end
+	-- Closing it is the same as /hearye hide, so it stays closed after a reload.
+	if frame.CloseButton then
+		frame.CloseButton:SetScript("OnClick", function()
+			Shell:SetShown(false)
+			ns:Print("Hidden. Type /hearye to bring it back.")
+		end)
+	end
 	-- The lowest layer, so unit frames (your character, target) and other
 	-- windows always draw over Hear Ye, never under it. The native edit box
 	-- raises itself to DIALOG while you type.
@@ -198,14 +286,14 @@ function Shell:Create()
 	if frame.SetResizeBounds then
 		frame:SetResizeBounds(MIN_WIDTH, MIN_HEIGHT, MAX_WIDTH, MAX_HEIGHT)
 	end
-	ns.ApplyBackdrop(frame, ns.db.opacity)
 	ApplyPosition()
 
-	-- Header: title, drag handle, settings.
+	-- The title bar: drag handle and right-click menu. Stops short of the
+	-- gear and close button so they stay clickable.
 	local header = CreateFrame("Frame", nil, frame)
-	header:SetPoint("TOPLEFT", 4, -4)
-	header:SetPoint("TOPRIGHT", -4, -4)
-	header:SetHeight(HEADER_HEIGHT - 4)
+	header:SetPoint("TOPLEFT", 56, -1)
+	header:SetPoint("TOPRIGHT", -46, -1)
+	header:SetHeight(HEADER_HEIGHT)
 	header:EnableMouse(true)
 	header:RegisterForDrag("LeftButton")
 	header:SetScript("OnDragStart", function()
@@ -222,14 +310,11 @@ function Shell:Create()
 			OpenMenu(self)
 		end
 	end)
-	local title = header:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-	title:SetPoint("LEFT", 6, 0)
-	title:SetText("Hear Ye")
-	self.title = title
-
-	settingsButton = CreateFrame("Button", nil, header)
-	settingsButton:SetSize(16, 16)
-	settingsButton:SetPoint("RIGHT", -2, 0)
+	-- The gear sits in the title bar, left of the close button.
+	settingsButton = CreateFrame("Button", nil, frame)
+	settingsButton:SetSize(15, 15)
+	settingsButton:SetPoint("RIGHT", header, "RIGHT", 18, 0)
+	settingsButton:SetFrameLevel(header:GetFrameLevel() + 2)
 	local gear = settingsButton:CreateTexture(nil, "ARTWORK")
 	gear:SetAllPoints()
 	if C_Texture and C_Texture.GetAtlasInfo and C_Texture.GetAtlasInfo("QuestLog-icon-setting") then
@@ -249,14 +334,16 @@ function Shell:Create()
 	end)
 	settingsButton:SetScript("OnLeave", GameTooltip_Hide)
 
+	-- The list starts below the portrait, as in Fireside Tales; the
+	-- conversation pane uses the full height beside it.
 	sidebar = ns.NewInset(frame)
-	sidebar:SetPoint("TOPLEFT", 6, -HEADER_HEIGHT - 2)
-	sidebar:SetPoint("BOTTOMLEFT", 6, 6)
+	sidebar:SetPoint("TOPLEFT", 8, self.styled and -60 or -HEADER_HEIGHT - 4)
+	sidebar:SetPoint("BOTTOMLEFT", 8, 6)
 	sidebar:SetWidth(SIDEBAR_WIDTH)
 
 	inputArea = CreateFrame("Frame", nil, frame)
 	inputArea:SetPoint("BOTTOMLEFT", sidebar, "BOTTOMRIGHT", 4, 0)
-	inputArea:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -6, 6)
+	inputArea:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -8, 6)
 	inputArea:SetHeight(INPUT_HEIGHT)
 	-- Drawn above the native edit box: with chatStyle "im" the box stays on
 	-- screen, faded, between messages, and this reads as its placeholder.
@@ -274,7 +361,8 @@ function Shell:Create()
 	hint:SetWordWrap(false)
 
 	local paneInset = ns.NewInset(frame)
-	paneInset:SetPoint("TOPLEFT", sidebar, "TOPRIGHT", 4, 0)
+	paneInset:SetPoint("TOP", frame, "TOP", 0, self.styled and -28 or -HEADER_HEIGHT - 4)
+	paneInset:SetPoint("LEFT", sidebar, "RIGHT", 4, 0)
 	paneInset:SetPoint("BOTTOMRIGHT", inputArea, "TOPRIGHT", 0, 2)
 	-- Conversation header: who or where, and a line of context.
 	local paneHeader = CreateFrame("Frame", nil, paneInset)
@@ -343,57 +431,86 @@ function Shell:Create()
 	self:SetLocked(ns.db.locked)
 end
 
--- Background, border, panels and the header rule at one alpha. Text, names
--- and the input box aren't touched, so they stay fully readable.
-local chromeAlpha
+-- Two kinds of chrome. Backgrounds (the window's fill and the marble panels)
+-- follow the opacity setting. The frame art (border, title bar, portrait,
+-- buttons, header rule) stays solid while the window is in use. With fading
+-- on, both fade out together when the mouse is away, like the default chat.
+-- Text, names and the input box are never touched, so they stay readable.
+local shownAmount -- 0: faded out, 1: fully shown
 
-local function PaintChrome(alpha)
-	chromeAlpha = alpha
-	frame:SetBackdropColor(0.06, 0.05, 0.04, alpha)
-	frame:SetBackdropBorderColor(BRONZE[1], BRONZE[2], BRONZE[3], math.min(1, alpha * 1.1))
-	for _, inset in ipairs(Shell.chrome.insets) do
-		if inset.Bg then
-			inset.Bg:SetAlpha(alpha)
-		end
-		if inset.NineSlice then
-			inset.NineSlice:SetAlpha(alpha)
-		end
-		if not inset.Bg and inset.SetBackdropColor then
-			inset:SetBackdropColor(0, 0, 0, 0.4 * alpha)
+local function Pieces()
+	local art, backgrounds = {}, {}
+	local function add(list, piece)
+		if piece and piece.SetAlpha then
+			list[#list + 1] = piece
 		end
 	end
-	Shell.chrome.rule:SetAlpha(alpha)
+	if Shell.styled then
+		add(art, frame.NineSlice)
+		add(art, frame.PortraitContainer or frame.portrait)
+		add(art, frame.TitleContainer)
+		add(backgrounds, frame.Bg)
+		add(backgrounds, frame.TopTileStreaks)
+	end
+	add(art, frame.CloseButton)
+	add(art, settingsButton)
+	add(art, Shell.grip)
+	add(art, Shell.chrome.rule)
+	for _, inset in ipairs(Shell.chrome.insets) do
+		add(art, inset.NineSlice)
+		add(backgrounds, inset.Bg)
+	end
+	return art, backgrounds
 end
 
--- Like the default chat: with fading on, the background shows while the
--- mouse is over the window or you're typing, and fades out a moment after.
+local function PaintChrome(amount)
+	shownAmount = amount
+	local art, backgrounds = Pieces()
+	local opacity = ns.db.opacity
+	for _, piece in ipairs(art) do
+		piece:SetAlpha(amount)
+	end
+	for _, piece in ipairs(backgrounds) do
+		piece:SetAlpha(amount * opacity)
+	end
+	if not Shell.styled then
+		frame:SetBackdropColor(0.06, 0.05, 0.04, amount * opacity)
+		frame:SetBackdropBorderColor(BRONZE[1], BRONZE[2], BRONZE[3], amount)
+	end
+	for _, inset in ipairs(Shell.chrome.insets) do
+		if not inset.Bg and inset.SetBackdropColor then
+			inset:SetBackdropColor(0, 0, 0, 0.4 * amount * opacity)
+		end
+	end
+end
+
 local FADE_SECONDS = 0.3
 local FADE_DELAY = 1.5
 local lastHover = 0
 
-local function TargetAlpha()
+local function TargetAmount()
 	if not ns.db.fadeBackground then
-		return ns.db.opacity
+		return 1
 	end
 	local now = GetTime()
 	if Shell.typing or frame:IsMouseOver() then
 		lastHover = now
 	end
 	if now - lastHover < FADE_DELAY then
-		return ns.db.opacity
+		return 1
 	end
 	return 0
 end
 
 local function OnFadeUpdate(_, elapsed)
-	local target = TargetAlpha()
-	if not chromeAlpha then
+	local target = TargetAmount()
+	if not shownAmount then
 		PaintChrome(target)
 		return
 	end
-	local current = chromeAlpha
+	local current = shownAmount
 	if current ~= target then
-		local step = (elapsed / FADE_SECONDS) * math.max(ns.db.opacity, 0.2)
+		local step = elapsed / FADE_SECONDS
 		if current < target then
 			current = math.min(target, current + step)
 		else
@@ -410,14 +527,14 @@ function Shell:DescribeChrome()
 	for i, inset in ipairs(self.chrome and self.chrome.insets or {}) do
 		insets[#insets + 1] = ("inset%d bg=%s nine=%s"):format(i, tostring(inset.Bg ~= nil), tostring(inset.NineSlice ~= nil))
 	end
-	return ("setting %d%%, fade %s, now %s; %s"):format(math.floor(ns.db.opacity * 100 + 0.5), ns.db.fadeBackground and "on" or "off",
-		chromeAlpha and (math.floor(chromeAlpha * 100 + 0.5) .. "%") or "unset", table.concat(insets, ", "))
+	return ("setting %d%%, fade %s, shown %s, %s frame; %s"):format(math.floor(ns.db.opacity * 100 + 0.5), ns.db.fadeBackground and "on" or "off",
+		shownAmount and (math.floor(shownAmount * 100 + 0.5) .. "%") or "unset", self.styled and "game" or "plain", table.concat(insets, ", "))
 end
 
 function Shell:ApplyOpacity()
 	if frame then
 		lastHover = GetTime()
-		PaintChrome(ns.db.opacity)
+		PaintChrome(1)
 	end
 end
 
@@ -511,7 +628,6 @@ function Shell:Refresh()
 	local y = -6
 	local bottom = sidebar:GetHeight() - 6
 	local rowCount, sectionCount = 0, 0
-	local currentSection
 
 	-- Short names are for display; when two would look the same, show both
 	-- in full so they can't be mistaken for each other.
@@ -522,30 +638,61 @@ function Shell:Refresh()
 		end
 	end
 
+	-- First sort the visible rows into their sections, so each header can
+	-- show its count before its rows are laid out.
+	local groups, order = {}, {}
 	for _, conv in ipairs(list) do
 		local available = C:IsAvailable(conv)
 		local sendable = conv.chatType ~= nil and not conv.readOnly
 		-- Destinations you can't use leave the list, unless you're reading one.
 		-- Earlier sessions and read-only rows stay so their history is reachable.
-		local visible = available or not sendable or conv.key == C.selectedKey
-		if visible then
+		if available or not sendable or conv.key == C.selectedKey then
 			local sectionKey = conv.sort >= 30 and "whispers" or "chat"
-			if sectionKey ~= currentSection then
-				currentSection = sectionKey
-				if -y + SECTION_HEIGHT > bottom then
-					break
-				end
-				sectionCount = sectionCount + 1
-				local section = sections[sectionCount] or CreateSection(sectionCount)
-				section:ClearAllPoints()
-				section:SetPoint("TOPLEFT", sidebar, "TOPLEFT", 8, y - 2)
-				section:SetText(SECTION_NAMES[sectionKey])
-				section:Show()
-				y = y - SECTION_HEIGHT
+			local group = groups[sectionKey]
+			if not group then
+				group = { key = sectionKey, convs = {}, unread = 0, loud = false }
+				groups[sectionKey] = group
+				order[#order + 1] = group
 			end
+			group.convs[#group.convs + 1] = conv
+			group.unread = group.unread + conv.unread
+			if conv.unread > 0 and not conv.quiet then
+				group.loud = true
+			end
+		end
+	end
+
+	local full = false
+	for _, group in ipairs(order) do
+		if full or -y + SECTION_HEIGHT > bottom then
+			break
+		end
+		local collapsed = ns.db.collapsed[group.key]
+		sectionCount = sectionCount + 1
+		local section = sections[sectionCount] or CreateSection(sectionCount)
+		section.key = group.key
+		section:ClearAllPoints()
+		section:SetPoint("TOPLEFT", sidebar, "TOPLEFT", 4, y)
+		section:SetPoint("RIGHT", sidebar, "RIGHT", -4, 0)
+		section.label:SetText(SECTION_NAMES[group.key])
+		section.icon:SetTexture(collapsed and "Interface\\Buttons\\UI-PlusButton-Up" or "Interface\\Buttons\\UI-MinusButton-Up")
+		if collapsed and group.unread > 0 then
+			section.count:SetText("")
+			section.pill:SetCount(group.unread, not group.loud)
+		else
+			section.count:SetText(#group.convs)
+			section.pill:Hide()
+		end
+		section:Show()
+		y = y - SECTION_HEIGHT
+
+		for _, conv in ipairs(collapsed and {} or group.convs) do
 			if -y + ROW_HEIGHT > bottom then
+				full = true
 				break
 			end
+			local available = C:IsAvailable(conv)
+			local sendable = conv.chatType ~= nil and not conv.readOnly
 			rowCount = rowCount + 1
 			local row = rows[rowCount] or CreateRow(rowCount)
 			row:ClearAllPoints()
@@ -560,13 +707,10 @@ function Shell:Refresh()
 				label = conv.fullName
 			end
 			row.label:SetText(label)
-			row.label:SetFontObject(selected and "GameFontNormalSmall" or "GameFontHighlightSmall")
 			if (sendable and not available) or conv.readOnly then
 				row.label:SetTextColor(0.5, 0.5, 0.5)
 			elseif selected then
 				row.label:SetTextColor(1, 0.82, 0)
-			elseif conv.color then
-				row.label:SetTextColor(conv.color.r, conv.color.g, conv.color.b)
 			else
 				row.label:SetTextColor(0.9, 0.9, 0.9)
 			end
@@ -579,26 +723,12 @@ function Shell:Refresh()
 				row.level:SetText("")
 			end
 
-			if conv.unread > 0 then
-				row.badge:SetText(conv.unread > 99 and "99+" or tostring(conv.unread))
-				row.badgeBg:SetWidth(math.max(16, row.badge:GetStringWidth() + 8))
-				if conv.quiet then
-					-- Busy public channels stay low-key.
-					row.badgeBg:SetVertexColor(0.3, 0.3, 0.3, 0.9)
-					row.badge:SetTextColor(0.85, 0.85, 0.85)
-				else
-					row.badgeBg:SetVertexColor(0.7, 0.08, 0.05, 1)
-					row.badge:SetTextColor(1, 1, 1)
-				end
-				row.badgeBg:Show()
-			else
-				row.badge:SetText("")
-				row.badgeBg:Hide()
-			end
-			-- The level sits beside the badge, or at the edge when there isn't one.
+			-- Busy public channels stay low-key, on a grey pill.
+			row.pill:SetCount(conv.unread, conv.quiet)
+			-- The level sits beside the pill, or at the edge when there isn't one.
 			row.level:ClearAllPoints()
-			if row.badgeBg:IsShown() then
-				row.level:SetPoint("RIGHT", row.badgeBg, "LEFT", -4, 0)
+			if row.pill:IsShown() then
+				row.level:SetPoint("RIGHT", row.pill, "LEFT", -4, 0)
 			else
 				row.level:SetPoint("RIGHT", row, "RIGHT", -6, 0)
 			end

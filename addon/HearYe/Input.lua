@@ -179,6 +179,26 @@ function Input:PointAt(editBox, conv)
 	editBox:UpdateHeader()
 end
 
+-- Point the box at the selected row when it isn't already, without opening
+-- it. Right after a reload the game hasn't rejoined your channels yet, so a
+-- saved channel row can't be pointed at until they're back.
+function Input:PointAtSelected()
+	local editBox = adopted
+	if not editBox or editBox:HasFocus() then
+		return
+	end
+	local C = ns.Conversations
+	local conv = C:GetSelected()
+	if not conv or not conv.chatType or not C:IsAvailable(conv) then
+		return
+	end
+	if C:KeyForEditBox(editBox) == conv.key then
+		return
+	end
+	self:PointAt(editBox, conv)
+	ns:Log("pointed the box at %s", conv.key)
+end
+
 -- A party ended or you left a channel. If you were typing to it, keep the
 -- text with that conversation and empty the box, so Enter can't send it
 -- somewhere you didn't pick.
@@ -225,8 +245,5 @@ function Input:Init()
 	self:AdoptCurrent()
 	-- After a /reload or login the game resets the box to Say. Point it back
 	-- at the restored conversation without opening it.
-	local conv = ns.Conversations:GetSelected()
-	if conv and adopted and ns.Conversations:IsAvailable(conv) then
-		self:PointAt(adopted, conv)
-	end
+	self:PointAtSelected()
 end

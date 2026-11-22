@@ -697,6 +697,7 @@ function Conversations:Init()
 		C_Timer.After(3, function()
 			Conversations.ready = true
 			Conversations:ReconcileGroups()
+			ns.Input:PointAtSelected()
 			ns.Shell:Refresh()
 		end)
 	end
