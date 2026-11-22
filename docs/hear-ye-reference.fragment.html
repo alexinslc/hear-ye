@@ -1,0 +1,140 @@
+<div id="azeroth-chat-concept">
+  <style>
+    #azeroth-chat-concept { --ac-window:light-dark(#f7f8fa,#171a20); --ac-side:light-dark(#eaedf2,#11141a); --ac-ink:light-dark(#17202e,#e9edf3); --ac-muted:light-dark(#536174,#a1aaba); --ac-line:light-dark(#ccd2dc,#303641); --ac-select:light-dark(#d8e7f5,#283c50); --ac-select-ink:light-dark(#193e63,#e3f1ff); --ac-hover:light-dark(#e1e5ec,#232832); --ac-input:light-dark(#fff,#20252e); --ac-alert:light-dark(#285b89,#a9cbed); --ac-alert-ink:light-dark(#fff,#122132); --ac-mage:light-dark(#126782,#65d5f3); --ac-warrior:light-dark(#805b36,#d2ae88); --ac-priest:light-dark(#495469,#f1f1ef); --ac-hunter:light-dark(#4c6a29,#b3d782); color:var(--ac-ink); font:13px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+    #azeroth-chat-concept * {box-sizing:border-box}
+    #azeroth-chat-concept button,#azeroth-chat-concept input {font:inherit}
+    #azeroth-chat-concept button {cursor:default}
+    #azeroth-chat-concept .stage {min-height:420px;padding:36px 14px 22px;display:flex;align-items:center;flex-direction:column;gap:14px}
+    #azeroth-chat-concept .ac-window {width:min(500px,100%);height:320px;display:flex;flex-direction:column;background:var(--ac-window);border:1px solid var(--ac-line);border-radius:7px;overflow:hidden;box-shadow:0 8px 28px #00000020;--ac-sidebar:136px;--ac-size:13px;font-size:var(--ac-size)}
+    #azeroth-chat-concept .ac-top {height:31px;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--ac-line);padding:0 9px;background:var(--ac-side)}
+    #azeroth-chat-concept .brand {display:flex;align-items:center;gap:7px;font-weight:600;font-size:12px;letter-spacing:.15px}
+    #azeroth-chat-concept .brand i {width:14px;height:14px;color:var(--ac-muted)}
+    #azeroth-chat-concept .top-actions {display:flex;gap:3px}
+    #azeroth-chat-concept .icon-button {display:grid;place-items:center;width:23px;height:23px;padding:0;background:transparent;border:0;border-radius:4px;color:var(--ac-muted)}
+    #azeroth-chat-concept .icon-button:hover {background:var(--ac-hover);color:var(--ac-ink)}
+    #azeroth-chat-concept .icon-button svg {width:14px;height:14px}
+    #azeroth-chat-concept .ac-body {display:flex;min-height:0;flex:1}
+    #azeroth-chat-concept .sidebar {width:var(--ac-sidebar);flex-shrink:0;background:var(--ac-side);border-right:1px solid var(--ac-line);padding:7px 5px;display:flex;flex-direction:column;gap:2px;overflow:auto}
+    #azeroth-chat-concept .section-label {display:flex;align-items:center;justify-content:space-between;color:var(--ac-muted);font-size:11px;padding:0 6px 4px;font-weight:500}
+    #azeroth-chat-concept .section-label.dm-label {margin-top:7px}
+    #azeroth-chat-concept .nav-row {border:0;background:transparent;color:var(--ac-ink);display:flex;align-items:center;gap:6px;padding:4px 7px;min-height:26px;flex-shrink:0;border-radius:4px;width:100%;text-align:left;white-space:nowrap}
+    #azeroth-chat-concept .nav-row:hover {background:var(--ac-hover)}
+    #azeroth-chat-concept .nav-row[aria-pressed="true"] {background:var(--ac-select);color:var(--ac-select-ink)}
+    #azeroth-chat-concept .nav-row svg {width:13px;height:13px;flex-shrink:0;color:var(--ac-muted)}
+    #azeroth-chat-concept .row-name {overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1}
+    #azeroth-chat-concept .level {font-size:11px;color:var(--ac-muted);font-variant-numeric:tabular-nums}
+    #azeroth-chat-concept .badge {min-width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center;border-radius:5px;background:var(--ac-alert);color:var(--ac-alert-ink);font-size:11px;padding:0 4px;font-variant-numeric:tabular-nums}
+    #azeroth-chat-concept .person-dot {height:6px;width:6px;border-radius:50%;flex-shrink:0;background:currentColor}
+    #azeroth-chat-concept .mage {color:var(--ac-mage)}
+    #azeroth-chat-concept .warrior {color:var(--ac-warrior)}
+    #azeroth-chat-concept .priest {color:var(--ac-priest)}
+    #azeroth-chat-concept .hunter {color:var(--ac-hunter)}
+    #azeroth-chat-concept .unknown {color:var(--ac-muted)}
+    #azeroth-chat-concept .more {color:var(--ac-muted);font-size:11px}
+    #azeroth-chat-concept .channel-strip {display:flex;gap:4px;padding:5px 7px;border-bottom:1px solid var(--ac-line);background:var(--ac-side);flex-wrap:wrap}
+    #azeroth-chat-concept .channel-strip .nav-row {width:auto;padding:3px 8px;min-height:25px;font-size:12px}
+    #azeroth-chat-concept .conversation {min-width:0;flex:1;display:flex;flex-direction:column}
+    #azeroth-chat-concept .chat-heading {height:36px;flex-shrink:0;padding:0 11px;display:flex;align-items:center;gap:7px;border-bottom:1px solid var(--ac-line);font-weight:600}
+    #azeroth-chat-concept .chat-context {font-size:11px;color:var(--ac-muted);font-weight:400;margin-left:auto;white-space:nowrap}
+    #azeroth-chat-concept .feed {padding:10px 12px 7px;flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:9px;scroll-behavior:auto}
+    #azeroth-chat-concept .message {overflow-wrap:anywhere;flex-shrink:0}
+    #azeroth-chat-concept .message-header {display:flex;gap:7px;align-items:baseline;font-size:11px;margin-bottom:2px}
+    #azeroth-chat-concept .sender {font-weight:600;font-size:12px}
+    #azeroth-chat-concept .message time {color:var(--ac-muted);font-size:11px}
+    #azeroth-chat-concept .message p {margin:0}
+    #azeroth-chat-concept .feed-note {font-size:11px;color:var(--ac-muted);margin:auto 0;text-align:center;padding:10px}
+    #azeroth-chat-concept .unread-line {display:flex;align-items:center;gap:7px;font-size:11px;color:var(--ac-alert);flex-shrink:0}
+    #azeroth-chat-concept .unread-line:before,#azeroth-chat-concept .unread-line:after {content:"";height:1px;background:var(--ac-line);flex:1}
+    #azeroth-chat-concept .composer {display:flex;gap:6px;align-items:center;margin:3px 9px 9px;border:1px solid var(--ac-line);border-radius:5px;background:var(--ac-input);padding:4px 5px 4px 8px;flex-shrink:0}
+    #azeroth-chat-concept .composer:focus-within {outline:2px solid var(--ac-alert);outline-offset:1px}
+    #azeroth-chat-concept .composer input {width:100%;min-width:0;color:var(--ac-ink);border:0;background:transparent;padding:3px 0;outline:none}
+    #azeroth-chat-concept .composer input::placeholder {color:var(--ac-muted);opacity:1}
+    #azeroth-chat-concept .send {border:0;background:transparent;color:var(--ac-muted);padding:3px;display:grid;place-items:center;border-radius:3px}
+    #azeroth-chat-concept .send:hover {background:var(--ac-select);color:var(--ac-select-ink)}
+    #azeroth-chat-concept .send svg {width:15px;height:15px}
+    #azeroth-chat-concept .preview-meta {display:flex;width:min(500px,100%);justify-content:space-between;gap:12px;align-items:center;color:var(--ac-muted);font-size:11px;flex-wrap:wrap}
+    #azeroth-chat-concept .preview-meta button {font:inherit;color:var(--ac-ink);border:1px solid var(--ac-line);background:var(--ac-window);border-radius:4px;padding:4px 8px}
+    #azeroth-chat-concept .preview-meta button:hover {background:var(--ac-hover)}
+    #azeroth-chat-concept .preview-state {min-height:17px;color:var(--ac-muted);font-size:11px;width:min(500px,100%)}
+    #azeroth-chat-concept .preview-controls {display:flex;align-items:center;flex-wrap:wrap;gap:8px 14px;width:min(500px,100%);font-size:12px;color:var(--ac-muted)}
+    #azeroth-chat-concept .preview-controls label {display:flex;align-items:center;gap:5px}
+    #azeroth-chat-concept .preview-controls select {font:inherit;background:var(--ac-window);color:var(--ac-ink);border:1px solid var(--ac-line);padding:4px 7px;border-radius:4px}
+    #azeroth-chat-concept .preview-controls input {accent-color:var(--ac-alert)}
+    #azeroth-chat-concept .availability {padding:6px 11px;background:var(--ac-side);color:var(--ac-muted);font-size:11px;border-bottom:1px solid var(--ac-line)}
+    #azeroth-chat-concept .send:disabled {opacity:.35}
+    #azeroth-chat-concept .preferences {background:var(--ac-window);padding:10px 12px;display:flex;flex-direction:column;gap:8px;font-size:12px}
+    #azeroth-chat-concept .preferences label {display:flex;align-items:center;gap:8px}
+    #azeroth-chat-concept .preferences input {accent-color:var(--ac-alert)}
+    #azeroth-chat-concept [hidden] {display:none!important}
+    #azeroth-chat-concept .ac-window.minimized {height:31px!important}
+    @media(max-width:440px) {#azeroth-chat-concept .stage{padding:28px 0 14px}#azeroth-chat-concept .ac-window{--ac-sidebar:112px!important;height:360px!important}#azeroth-chat-concept .chat-context{display:none}#azeroth-chat-concept .feed{padding:9px}#azeroth-chat-concept .row-name{font-size:12px}}
+    @media(pointer:coarse) {#azeroth-chat-concept .nav-row{min-height:36px}#azeroth-chat-concept .top-actions .icon-button{width:32px}#azeroth-chat-concept .composer input{font-size:16px}#azeroth-chat-concept .send{min-width:36px;min-height:32px}}
+  </style>
+  <div class="viz-dotted-background" aria-label="Automatic WoW channel sidebar">
+    <section aria-label="Channels and whispers in one sidebar"><div class="stage" data-layout="unified"></div></section>
+  </div>
+  <script>
+  (() => {
+    const root=document.getElementById('azeroth-chat-concept');
+    const saved=window.openai?.widgetState?.modelContent||{};
+    const people={mira:{name:'Mira Frost',short:'Mira F.',level:'24',cls:'Mage',color:'mage'},bren:{name:'Bren Oak',short:'Bren O.',level:'22',cls:'Warrior',color:'warrior'},elowen:{name:'Elowen',short:'Elowen',level:'25',cls:'Priest',color:'priest'},rowan:{name:'Rowan Vale',short:'Rowan V.',level:'—',cls:'Class and level unknown',color:'unknown'}};
+    const channels={nearby:{name:'Nearby',icon:'map-pin',context:'Players around you',reply:'Say to nearby players…'},party:{name:'Party',icon:'users',context:'3 players',reply:'Message your party…'},guild:{name:'Guild',icon:'flag',context:'Your guild',reply:'Message your guild…'},general:{name:'General',icon:'hash',context:'Current zone',reply:'Message General…'},trade:{name:'Trade',icon:'hash',context:'City trade channel',reply:'Message Trade…'}};
+    const sample={party:[{who:'bren',text:"I'm at the lighthouse.",time:'8:42'},{who:'mira',text:'Want to do the quest together?',time:'8:42'},{who:'you',text:'On my way! Give me a minute.',time:'8:43'}],nearby:[{who:'elowen',text:'Anyone need help with the gnolls?',time:'8:40'},{who:'bren',text:'Thanks for the heal!',time:'8:41'}],guild:[{who:'elowen',text:'Welcome! Ask here if you need a hand.',time:'8:35'}],mira:[{who:'mira',text:'hey! are you still in Westfall?',time:'8:40'},{who:'you',text:'Yep, just picked up the lighthouse quest.',time:'8:41'},{who:'mira',text:"Nice, I'll meet you there :) ",time:'8:43',unread:true}],bren:[{who:'bren',text:'Want me to save you a spot?',time:'8:39'}],elowen:[{who:'elowen',text:'Happy to help with that quest later.',time:'8:38'}],rowan:[{who:'rowan',text:'Hey, is your group full?',time:'8:43'}],general:[{who:'bren',text:'Anyone heading to Deadmines?',time:'8:39'}],trade:[],lfg:[]};
+    const models=[];
+    function persist(m){if(window.openai?.setWidgetState)window.openai.setWidgetState({modelContent:{layout:m.layout,selectedConversation:m.selected,width:m.design.width,environment:{...m.environment}},privateContent:{}}).catch(()=>{});}
+    function availableChannels(m){return ['nearby',...(m.environment.party?['party']:[]),...(m.environment.guild?['guild']:[]),...(m.environment.public?['general']:[]),...(m.environment.public&&m.environment.location==='Stormwind'?['trade']:[])];}
+    function textNode(tag,cls,text){const e=document.createElement(tag);if(cls)e.className=cls;e.textContent=text;return e;}
+    function icon(name){return '<i data-lucide="'+name+'" aria-hidden="true"></i>';}
+    function paintIcons(){if(globalThis.lucide)lucide.createIcons({attrs:{width:16,height:16}});}
+    function row(m,key){
+      const p=people[key],c=channels[key],button=document.createElement('button');button.type='button';button.className='nav-row cursor-interaction';button.dataset.key=key;button.setAttribute('aria-pressed',String(m.selected===key));
+      button.setAttribute('aria-label',p?`${p.name}, ${p.cls}${p.level==='—'?'':', level '+p.level}${m.unread[key]?', '+m.unread[key]+' unread':''}`:c.name+(m.unread[key]?', '+m.unread[key]+' unread':''));
+      if(p){const dot=textNode('span','person-dot '+p.color,'');button.append(dot,textNode('span','row-name '+p.color,p.short));button.dataset.tooltip=p.name+' · '+p.cls+(p.level==='—'?'':' · Level '+p.level);button.dataset.tooltipPlacement='right';}
+      else {button.innerHTML=icon(c.icon);button.append(textNode('span','row-name',c.name));}
+      if(p){const level=textNode('span','level',p.level);level.hidden=!m.prefs.levels;button.append(level);}
+      if(m.unread[key]){const badge=textNode('span','badge',m.unread[key]);badge.hidden=!m.prefs.counts;button.append(badge);}
+      button.addEventListener('click',()=>select(m,key));return button;
+    }
+    function nav(m){
+      m.sidebar.replaceChildren();m.strip.replaceChildren();
+      m.sidebar.append(textNode('div','section-label','Channels'));availableChannels(m).forEach(k=>m.sidebar.append(row(m,k)));
+      const label=textNode('div','section-label dm-label','Whispers');m.sidebar.append(label);['mira','bren','rowan'].forEach(k=>m.sidebar.append(row(m,k)));
+    }
+    function renderFeed(m){
+      const p=people[m.selected],c=channels[m.selected],available=!!p||availableChannels(m).includes(m.selected);m.heading.replaceChildren(textNode('span',p?p.color:'',p?p.name:c.name),textNode('span','chat-context',p?'Private · '+(p.level==='—'?'Level unknown':p.level+' '+p.cls):!available?'History':m.selected==='general'?m.environment.location:c.context));
+      m.input.disabled=!available;m.stage.querySelector('.send').disabled=!available;
+      const notice=m.stage.querySelector('.availability');notice.hidden=available;notice.textContent=m.selected==='party'?'Party ended · history only. Select another conversation.':m.selected==='guild'?'Guild unavailable · history only. Select another conversation.':'Channel unavailable here · history only. Select another conversation.';
+      m.input.placeholder=available?(p?'Whisper '+p.name+'…':c.reply):'Select an available conversation…';m.input.setAttribute('aria-label',m.input.placeholder);m.feed.replaceChildren();
+      const list=m.messages[m.selected]||[];
+      if(!list.length)m.feed.append(textNode('div','feed-note','No messages yet.'));
+      let unreadShown=false;
+      list.forEach(msg=>{if(msg.unread&&!unreadShown){m.feed.append(textNode('div','unread-line','New messages'));unreadShown=true;}const person=people[msg.who],article=textNode('article','message','');const header=textNode('div','message-header','');header.append(textNode('span','sender '+(person?person.color:'unknown'),person?person.name:'You'),textNode('time','',msg.time));article.append(header,textNode('p','',msg.text));m.feed.append(article);});
+      m.feed.scrollTop=m.feed.scrollHeight;
+    }
+    function select(m,key,save=true){m.drafts[m.selected]=m.input.value;m.selected=key;m.unread[key]=0;m.input.value=m.drafts[key]||'';m.stage.querySelector('.preview-state').textContent='';nav(m);renderFeed(m);paintIcons();if(save)persist(m);}
+    root.querySelectorAll('.stage').forEach((stage,index)=>{
+      stage.innerHTML='<div class="ac-window" aria-label="Compact chat design"><header class="ac-top"><span class="brand">'+icon('messages-square')+' Hear Ye</span><div class="top-actions"><button class="icon-button settings cursor-interaction" aria-label="Chat preferences" type="button">'+icon('sliders-horizontal')+'</button><button class="icon-button minimize cursor-interaction" aria-label="Minimize chat" type="button">'+icon('minus')+'</button></div></header><div class="channel-strip" hidden></div><div class="ac-body"><nav class="sidebar" aria-label="Conversations"></nav><section class="conversation" aria-label="Selected conversation"><div class="chat-heading"></div><div class="availability" hidden></div><div class="feed" role="log" aria-label="Example chat messages"></div><div class="preferences" hidden><label><input type="checkbox" checked> Unread counts</label><label><input type="checkbox" checked> Show player levels</label><label><input type="checkbox" checked> Class colors</label></div><div class="composer" role="group" aria-label="Reply composer"><input maxlength="255" autocomplete="off" aria-label="Message your party"><button class="send cursor-interaction" type="button" aria-label="Send example message">'+icon('arrow-up')+'</button></div></section></div></div><div class="preview-controls" aria-label="Preview game state"><span>Preview:</span><label>Location <select class="demo-location"><option>Westfall</option><option>Stormwind</option></select></label><label><input class="demo-party" type="checkbox" checked> In a party</label><label><input class="demo-guild" type="checkbox" checked> In a guild</label><label><input class="demo-public" type="checkbox" checked> Public channels joined</label></div><div class="preview-meta"><span class="dimensions">500 × 320 target · example messages</span><button type="button" class="simulate cursor-interaction">Simulate a whisper</button></div><div class="preview-state" aria-live="polite"></div>';
+      const m={stage,layout:stage.dataset.layout,selected:channels[saved.selectedConversation]||people[saved.selectedConversation]?saved.selectedConversation:'party',unread:{mira:2,rowan:1},messages:JSON.parse(JSON.stringify(sample)),drafts:{},environment:{location:saved.environment?.location==='Stormwind'?'Stormwind':'Westfall',party:saved.environment?.party!==false,guild:saved.environment?.guild!==false,public:saved.environment?.public!==false},prefs:{counts:true,levels:true},design:{width:500,sidebar:136,font:13},sidebar:stage.querySelector('.sidebar'),strip:stage.querySelector('.channel-strip'),heading:stage.querySelector('.chat-heading'),feed:stage.querySelector('.feed'),input:stage.querySelector('.composer input'),window:stage.querySelector('.ac-window')};
+      models.push(m);m.unread[m.selected]=0;m.strip.hidden=true;
+      const location=stage.querySelector('.demo-location'),party=stage.querySelector('.demo-party'),guild=stage.querySelector('.demo-guild'),publicChannels=stage.querySelector('.demo-public');
+      location.value=m.environment.location;party.checked=m.environment.party;guild.checked=m.environment.guild;publicChannels.checked=m.environment.public;
+      function updateEnvironment(){m.environment={location:location.value,party:party.checked,guild:guild.checked,public:publicChannels.checked};nav(m);renderFeed(m);paintIcons();stage.querySelector('.preview-state').textContent='Available channels updated automatically.';persist(m);}
+      location.addEventListener('change',updateEnvironment);party.addEventListener('change',updateEnvironment);guild.addEventListener('change',updateEnvironment);publicChannels.addEventListener('change',updateEnvironment);
+      const sendExample=()=>{if(m.input.disabled)return;const value=m.input.value.trim();if(!value)return;const d=new Date();m.messages[m.selected].push({who:'you',text:value,time:d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})});m.input.value='';m.drafts[m.selected]='';renderFeed(m);stage.querySelector('.preview-state').textContent='Example message added locally.';m.input.blur();persist(m);};stage.querySelector('.send').addEventListener('click',sendExample);m.input.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();sendExample();}});
+      stage.querySelector('.simulate').addEventListener('click',()=>{m.messages.mira.push({who:'mira',text:'Ready when you are! No rush.',time:'8:44',unread:m.selected!=='mira'});if(m.selected!=='mira')m.unread.mira=(m.unread.mira||0)+1;nav(m);if(m.selected==='mira')renderFeed(m);paintIcons();stage.querySelector('.preview-state').textContent=m.selected==='mira'?'New message in this conversation.':'Mira sent a whisper. Your current conversation stayed open.';});
+      stage.querySelector('.minimize').addEventListener('click',()=>{m.window.classList.toggle('minimized');stage.querySelector('.minimize').setAttribute('aria-label',m.window.classList.contains('minimized')?'Restore chat':'Minimize chat');});
+      stage.querySelector('.settings').addEventListener('click',()=>{const prefs=stage.querySelector('.preferences');prefs.hidden=!prefs.hidden;m.feed.hidden=!prefs.hidden;});
+      const toggles=stage.querySelectorAll('.preferences input');toggles[0].addEventListener('change',()=>{m.prefs.counts=toggles[0].checked;nav(m);paintIcons();});toggles[1].addEventListener('change',()=>{m.prefs.levels=toggles[1].checked;nav(m);paintIcons();});toggles[2].addEventListener('change',()=>{m.window.style.setProperty('--ac-mage',toggles[2].checked?'':'var(--ac-ink)');m.window.style.setProperty('--ac-warrior',toggles[2].checked?'':'var(--ac-ink)');m.window.style.setProperty('--ac-priest',toggles[2].checked?'':'var(--ac-ink)');});
+      function design(){m.window.style.width='min('+m.design.width+'px, 100%)';m.window.style.setProperty('--ac-sidebar',m.design.sidebar+'px');m.window.style.setProperty('--ac-size',m.design.font+'px');stage.querySelector('.dimensions').textContent=m.design.width+' × 320 target · example messages';}
+      nav(m);renderFeed(m);design();
+      if(globalThis.Tweak){const tweak=new Tweak({container:m.window,onChange:design});tweak.addSlider(m.design,'width',{label:'Window width',min:420,max:600,step:10,unit:'px'});tweak.addSlider(m.design,'sidebar',{label:'Names pane',min:110,max:160,step:2,unit:'px'});tweak.addSlider(m.design,'font',{label:'Message size',min:12,max:16,unit:'px'});}
+    });
+    window.addEventListener('openai:set_globals',event=>{
+      const state=event.detail?.globals?.widgetState?.modelContent;if(!state)return;
+      models.forEach(m=>{if(state.environment){m.environment={location:state.environment.location==='Stormwind'?'Stormwind':'Westfall',party:state.environment.party!==false,guild:state.environment.guild!==false,public:state.environment.public!==false};m.stage.querySelector('.demo-location').value=m.environment.location;m.stage.querySelector('.demo-party').checked=m.environment.party;m.stage.querySelector('.demo-guild').checked=m.environment.guild;m.stage.querySelector('.demo-public').checked=m.environment.public;}
+      if((channels[state.selectedConversation]||people[state.selectedConversation])&&state.selectedConversation!==m.selected)select(m,state.selectedConversation,false);else {nav(m);renderFeed(m);paintIcons();}});
+    });
+    paintIcons();
+  })();
+  </script>
+</div>

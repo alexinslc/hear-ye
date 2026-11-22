@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1200" height="300" viewBox="0 0 1200 300">
+  <defs>
+    <radialGradient id="bg" cx="30%" cy="40%" r="90%">
+      <stop offset="0" stop-color="#3a2a1a"/><stop offset="1" stop-color="#0e0905"/>
+    </radialGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffe7a6"/><stop offset="1" stop-color="#c8923f"/>
+    </linearGradient>
+    <linearGradient id="bronze" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#5e3d17"/><stop offset=".5" stop-color="#e0b463"/><stop offset="1" stop-color="#5e3d17"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="300" fill="url(#bg)"/>
+  <rect x="8" y="8" width="1184" height="284" fill="none" stroke="url(#bronze)" stroke-width="6" rx="6"/>
+  <clipPath id="c"><circle cx="180" cy="150" r="108"/></clipPath><image clip-path="url(#c)" href="logo.png" xlink:href="logo.png" x="70" y="40" width="220" height="220"/>
+  <text x="340" y="160" font-family="Georgia, 'Times New Roman', serif" font-size="104" font-weight="bold" fill="url(#gold)" stroke="#2a1a0a" stroke-width="3" paint-order="stroke">Hear Ye</text>
+  <text x="344" y="218" font-family="Georgia, serif" font-size="32" fill="#e8d6a8">Party, guild, nearby and whispers, each in its own place.</text>
+</svg>

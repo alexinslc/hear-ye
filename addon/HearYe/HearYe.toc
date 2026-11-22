@@ -1,0 +1,13 @@
+## Interface: 16001
+## Title: Hear Ye
+## Notes: A compact chat window that keeps your party, nearby, guild and whisper conversations easy to follow.
+## Version: 0.1.0
+## IconTexture: Interface\AddOns\HearYe\Textures\Icon
+## SavedVariables: HearYeDB
+
+Core.lua
+Conversations.lua
+Shell.lua
+Input.lua
+Messages.lua
+Slash.lua
