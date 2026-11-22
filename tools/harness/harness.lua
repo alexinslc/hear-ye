@@ -445,7 +445,7 @@ section("Placement", function()
 	S.fire("EDIT_MODE_LAYOUTS_UPDATED")
 	S.runTimers()
 	local uw, uh = S.ns.Shell.frame:GetSize()
-	check("under my character is wide", uw == math.floor(2560 / 1440 * 768 * 0.5), uw)
+	check("under my character ends just past the player frame", uw == 510 + 16 - 16, uw)
 	check("it fills the gap from the bars to the player frame", uh == 300 - 6 - 106, uh)
 	bar.GetTop = function() return 130 end -- a second bar row turned on
 	S.fire("UPDATE_BONUS_ACTIONBAR")

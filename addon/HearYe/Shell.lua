@@ -166,8 +166,16 @@ local function ApplyPosition()
 	if ns.db.layout == "under" then
 		-- Wide and short: across the space above the action bars, up to the
 		-- bottom of your character's frame.
+		-- As wide as the space under your character's frame, ending a little
+		-- past its right edge, rather than a fixed share of the screen.
 		if not ns.db.sized then
-			width = math.floor(Clamp(UIParent:GetWidth() * 0.5, 440, 1000))
+			local _, playerRight = Bounds(_G.PlayerFrame)
+			local cap = UIParent:GetWidth() * 0.45
+			if playerRight then
+				width = math.floor(Clamp(playerRight + 16 - margin, 440, math.max(440, cap)))
+			else
+				width = math.floor(Clamp(UIParent:GetWidth() * 0.36, 440, math.max(440, cap)))
+			end
 		end
 		local bottom = ClearOfBars(margin, margin + width, margin)
 		if not ns.db.sized then
