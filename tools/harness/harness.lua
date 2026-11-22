@@ -410,6 +410,22 @@ section("Placement", function()
 	S.runTimers()
 	check("it appears even without a layout event", S.ns.Shell.frame:GetAlpha() == 1)
 
+	-- The player frame sits above the bars, centre-left: the window stops
+	-- short of it instead of reaching under it.
+	local player = {
+		IsVisible = function() return true end,
+		GetEffectiveScale = function() return 1 end,
+		GetLeft = function() return 380 end, GetRight = function() return 510 end,
+		GetBottom = function() return 120 end, GetTop = function() return 190 end,
+	}
+	S = Boot(nil, { stubs = { PlayerFrame = player } })
+	S.env.UIParent:SetSize(2560 / 1440 * 768, 768)
+	S.login()
+	S.fire("EDIT_MODE_LAYOUTS_UPDATED")
+	S.runTimers()
+	local pw = S.ns.Shell.frame:GetWidth()
+	check("it stops short of the player frame", pw <= 380 - 6 - 16 and pw >= 300, pw)
+
 	S = Boot({ schema = 3, position = { "BOTTOMLEFT", "BOTTOMLEFT", 40, 200 }, width = 700, height = 380 })
 	S.login()
 	check("a window resized before keeps its size", S.ns.db.sized == true and S.ns.Shell.frame:GetWidth() == 700)

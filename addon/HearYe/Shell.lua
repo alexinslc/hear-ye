@@ -12,7 +12,10 @@ local HEADER_HEIGHT = 22
 local INPUT_HEIGHT = 30
 local ROW_HEIGHT = 18
 local SECTION_HEIGHT = 20
-local MIN_WIDTH, MIN_HEIGHT = 360, 200
+local MIN_HEIGHT = 200
+-- Fitting itself beside your character's frame, the window may go a little
+-- narrower than you can drag it.
+local AUTO_MIN_WIDTH = 300
 local MAX_WIDTH, MAX_HEIGHT = 1200, 800
 local BRONZE = { 0.72, 0.55, 0.32 }
 
@@ -93,22 +96,55 @@ local function ClearOfBars(left, right, bottom)
 	return bottom
 end
 
+-- Unit frames that can sit just above the bars, next to where Hear Ye goes.
+-- Hear Ye is drawn under them, so its own size stops short of them.
+local UNIT_FRAMES = { "PlayerFrame", "TargetFrame", "FocusFrame", "PetFrame" }
+
+local function Bounds(region)
+	if not (region and region.IsVisible and region:IsVisible() and region:GetLeft() and region:GetBottom()) then
+		return nil
+	end
+	local scale = region:GetEffectiveScale() / UIParent:GetEffectiveScale()
+	return region:GetLeft() * scale, region:GetRight() * scale, region:GetBottom() * scale, region:GetTop() * scale
+end
+
+-- Narrow the window, or failing that make it shorter, so it doesn't reach
+-- under a unit frame.
+local function ClearOfUnitFrames(left, bottom, width, height)
+	for _, name in ipairs(UNIT_FRAMES) do
+		local l, r, b, t = Bounds(_G[name])
+		if l and r > left and l < left + width and t > bottom and b < bottom + height then
+			if l - 6 - left >= AUTO_MIN_WIDTH then
+				width = l - 6 - left
+			elseif b - 6 - bottom >= MIN_HEIGHT then
+				height = b - 6 - bottom
+			end
+		end
+	end
+	return width, height
+end
+
 local function ApplyPosition()
 	local width, height = ns.db.width, ns.db.height
+	local pos = ns.db.position
+	frame:ClearAllPoints()
+	if pos then
+		frame:SetSize(width, height)
+		frame:SetPoint(pos[1], UIParent, pos[2], pos[3], pos[4])
+		return
+	end
+	-- Bottom left, like the default chat, just above the action bars and
+	-- beside (not under) your character's frame.
 	if not ns.db.sized then
 		width, height = AutoSize()
 	end
-	frame:ClearAllPoints()
-	frame:SetSize(width, height)
-	local pos = ns.db.position
-	if pos then
-		frame:SetPoint(pos[1], UIParent, pos[2], pos[3], pos[4])
-	else
-		-- Bottom left, like the default chat, just above the action bars.
-		local margin = math.floor(Clamp(UIParent:GetWidth() * 0.012, 10, 32))
-		local bottom = ClearOfBars(margin, margin + width, margin)
-		frame:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", margin, bottom)
+	local margin = math.floor(Clamp(UIParent:GetWidth() * 0.012, 10, 32))
+	local bottom = ClearOfBars(margin, margin + width, margin)
+	if not ns.db.sized then
+		width, height = ClearOfUnitFrames(margin, bottom, width, height)
 	end
+	frame:SetSize(math.floor(width), math.floor(height))
+	frame:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", margin, bottom)
 end
 
 -- Placing itself: the bars only take their Edit Mode spots a moment after
@@ -160,7 +196,10 @@ local function WatchPlacement()
 		"DISPLAY_SIZE_CHANGED", "UPDATE_SHAPESHIFT_FORMS", "PET_BAR_UPDATE", "UPDATE_BONUS_ACTIONBAR" }) do
 		pcall(placer.RegisterEvent, placer, event)
 	end
-	for _, name in ipairs(LOW_BARS) do
+	local watched = {}
+	for _, name in ipairs(LOW_BARS) do watched[#watched + 1] = name end
+	for _, name in ipairs(UNIT_FRAMES) do watched[#watched + 1] = name end
+	for _, name in ipairs(watched) do
 		local bar = _G[name]
 		if bar and bar.HookScript then
 			bar:HookScript("OnShow", function() if revealed and C_Timer then C_Timer.After(0, Replace) end end)
@@ -385,7 +424,7 @@ function Shell:Create()
 	frame:SetMovable(true)
 	frame:SetResizable(true)
 	if frame.SetResizeBounds then
-		frame:SetResizeBounds(MIN_WIDTH, MIN_HEIGHT, MAX_WIDTH, MAX_HEIGHT)
+		frame:SetResizeBounds(AUTO_MIN_WIDTH, MIN_HEIGHT, MAX_WIDTH, MAX_HEIGHT)
 	end
 	ApplyPosition()
 
@@ -700,14 +739,10 @@ function Shell:ApplySidebar()
 	self.paneInset:SetPoint("TOP", frame, "TOP", 0, top)
 	self.paneInset:SetPoint("LEFT", sidebar, "RIGHT", 4, 0)
 	self.paneInset:SetPoint("BOTTOMRIGHT", inputArea, "TOPRIGHT", 0, 2)
-	-- In the strip, the button sits at its top, since the pane now starts
-	-- right beside the portrait.
+	-- The button stays in one spot beside the portrait, so a second click
+	-- in the same place switches back.
 	toggle:ClearAllPoints()
-	if compact then
-		toggle:SetPoint("TOP", sidebar, "TOP", 0, -3)
-	else
-		toggle:SetPoint("TOPLEFT", frame, "TOPLEFT", self.styled and 58 or 6, self.styled and -31 or -HEADER_HEIGHT)
-	end
+	toggle:SetPoint("TOPLEFT", frame, "TOPLEFT", self.styled and 58 or 6, self.styled and -31 or -HEADER_HEIGHT)
 	local arrow = compact and "NextPage" or "PrevPage"
 	toggle:SetNormalTexture("Interface\\Buttons\\UI-SpellbookIcon-" .. arrow .. "-Up")
 	toggle:SetPushedTexture("Interface\\Buttons\\UI-SpellbookIcon-" .. arrow .. "-Down")
@@ -824,7 +859,7 @@ function Shell:Refresh()
 	local C = ns.Conversations
 	local list = C:Sorted()
 	local compact = ns.db.sidebarHidden
-	local y = compact and -28 or -6
+	local y = -6
 	local bottom = sidebar:GetHeight() - 6
 	local rowCount, sectionCount = 0, 0
 

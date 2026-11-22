@@ -85,7 +85,7 @@ local function ApplyDefaults(db)
 	if db.position ~= nil and (type(db.position) ~= "table" or type(db.position[1]) ~= "string" or tonumber(db.position[3]) == nil or tonumber(db.position[4]) == nil) then
 		db.position = nil
 	end
-	db.width = Clamp(db.width, 360, 1200, defaults.width)
+	db.width = Clamp(db.width, 300, 1200, defaults.width)
 	db.height = Clamp(db.height, 200, 800, defaults.height)
 	db.fontSize = Clamp(db.fontSize, 0, 24, 0)
 	db.opacity = Clamp(db.opacity, 0, 1, defaults.opacity)
