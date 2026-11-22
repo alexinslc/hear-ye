@@ -4,9 +4,9 @@ _G.HearYe = ns
 
 ns.name = addonName
 ns.SCHEMA = 7
--- The default chat's timings: lines stay two minutes, then fade over three seconds.
-ns.TEXT_VISIBLE = 120
-ns.TEXT_FADE = 3
+-- A quiet conversation fades after ten seconds, over two seconds.
+ns.TEXT_VISIBLE = 10
+ns.TEXT_FADE = 2
 
 -- Plain values; each is checked by type on load, so a damaged or old saved
 -- file falls back to the default instead of breaking the window.

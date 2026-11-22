@@ -393,23 +393,7 @@ function Messages:ShowNotice(text)
 	end
 end
 
--- Lines fade on their own when chat is quiet, like the default chat.
-function Messages:ApplyTextFade()
-	if not smf then
-		return
-	end
-	smf:SetFading(ns.db.fadeText and true or false)
-	smf:SetTimeVisible(ns.TEXT_VISIBLE)
-	smf:SetFadeDuration(ns.TEXT_FADE)
-	self:WakeText()
-end
 
--- Show faded lines again, for another full stretch.
-function Messages:WakeText()
-	if smf and smf.ResetAllFadeTimes then
-		smf:ResetAllFadeTimes()
-	end
-end
 
 function Messages:Render()
 	if not smf then
@@ -587,7 +571,7 @@ function Messages:Init()
 		end
 	end)
 	self.frame = smf
-	self:ApplyTextFade()
+	smf:SetFading(false) -- the whole conversation side fades instead; see Shell
 	self:ApplyFont()
 	HookScrollBindings()
 

@@ -651,11 +651,9 @@ section("A quiet conversation fades", function()
 		for _ = 1, 5 do Shell.OnFadeUpdate(frame, 1) end
 		return Shell:DescribeChrome()
 	end
-	local woken = 0
-	rawset(S.ns.Messages.frame, "ResetAllFadeTimes", function() woken = woken + 1 end)
 	settle(1)
-	check("the messages stay while it's busy", settle(60):find("text 100%%") ~= nil, Shell:DescribeChrome())
-	check("they fade after two quiet minutes", settle(130):find("text 0%%") ~= nil, Shell:DescribeChrome())
+	check("the messages stay while it's busy", settle(5):find("text 100%%") ~= nil, Shell:DescribeChrome())
+	check("they fade after ten quiet seconds", settle(10):find("text 0%%") ~= nil, Shell:DescribeChrome())
 	check("the whole message side fades as one", Shell.pane:GetAlpha() == 0 and Shell.paneHeader:GetAlpha() == 0, Shell.pane:GetAlpha())
 	check("the conversation list stays", Shell.sidebar:GetAlpha() == 1, Shell.sidebar:GetAlpha())
 	local selected = S.ns.Conversations.selectedKey
@@ -675,9 +673,7 @@ section("A quiet conversation fades", function()
 	settle(200)
 	frame.IsMouseOver = function() return true end
 	S.mouseFocus = Shell.pane
-	woken = 0
 	check("hovering brings it back", settle(1):find("text 100%%") ~= nil, Shell:DescribeChrome())
-	check("and wakes the faded lines", woken > 0, woken)
 	frame.IsMouseOver = nil
 	S.mouseFocus = nil
 	S.ns.db.fadeText = false

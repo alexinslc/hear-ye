@@ -739,15 +739,13 @@ local function TargetAmount(now, active)
 	return 0
 end
 
--- The conversation side fades too, like the default chat: two minutes after
+-- The conversation side fades too, like the default chat: ten seconds after
 -- the last message in the open conversation, or the last time you looked,
 -- its header, messages and notes fade out as one. The list stays, so unread
 -- pills are always there. A message in the open conversation, switching rows,
--- hovering or typing brings it back. Within it, old lines also fade one by
--- one, so a new message stands out when it returns.
+-- hovering or typing brings it back.
 local textAmount -- 0: faded out, 1: fully shown
 local lastActivity = 0
-local lastWake = 0
 
 local function PaintText(amount)
 	textAmount = amount
@@ -776,12 +774,6 @@ local function OnFadeUpdate(_, elapsed)
 	local active = Shell.typing or Hovered()
 	if active then
 		lastActivity = now
-		-- Bring faded lines back, about once a second while you're here, so
-		-- they stay up for the full time after you leave.
-		if now - lastWake >= 1 then
-			lastWake = now
-			ns.Messages:WakeText()
-		end
 	end
 	local text = TextTarget(now)
 	if text ~= textAmount then
@@ -824,7 +816,6 @@ function Shell:ApplyOpacity()
 		lastActivity = lastHover
 		PaintChrome(1)
 		PaintText(1)
-		ns.Messages:ApplyTextFade()
 	end
 end
 
