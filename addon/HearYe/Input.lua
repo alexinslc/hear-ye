@@ -179,6 +179,24 @@ function Input:PointAt(editBox, conv)
 	editBox:UpdateHeader()
 end
 
+function Input:IsTyping()
+	return adopted ~= nil and adopted:HasFocus() and true or false
+end
+
+-- Point the box at a conversation without opening it, for the next Enter.
+function Input:PointQuietly(conv)
+	if not ChatFrameUtil then
+		return
+	end
+	local editBox = ChatFrameUtil.ChooseBoxForSend()
+	if not editBox then
+		return
+	end
+	self:Adopt(editBox)
+	self:PointAt(editBox, conv)
+	ns:Log("pointed the box at %s from the sidebar", conv.key)
+end
+
 -- Point the box at the selected row when it isn't already, without opening
 -- it. Right after a reload the game hasn't rejoined your channels yet, so a
 -- saved channel row can't be pointed at until they're back.
@@ -235,6 +253,13 @@ function Input:Init()
 		Input:Adopt(editBox)
 		baselineKey = ns.Conversations:KeyForEditBox(editBox)
 		ns.Shell:SetTyping(true)
+		-- Opening the box on a conversation with unsent text brings it back.
+		local C = ns.Conversations
+		local conv = C:GetSelected()
+		if conv and conv.draft and (editBox:GetText() or "") == "" and baselineKey == conv.key then
+			editBox:SetText(conv.draft)
+			conv.draft = nil
+		end
 	end, Input)
 	EventRegistry:RegisterCallback("ChatFrame.OnEditBoxFocusLost", function()
 		ns.Shell:SetTyping(false)

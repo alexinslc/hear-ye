@@ -544,9 +544,18 @@ function Conversations:Select(key, fromNative)
 		ns:Log("selected %s (%s)", key, fromNative and "native command" or "sidebar")
 	end
 	if not fromNative then
+		-- Clicking a row switches what you're reading, like a chat tab: it
+		-- doesn't take the keyboard, so you keep walking. The chat box is
+		-- pointed there for when you press Enter. Only while you're already
+		-- typing does the click move the open box (and your text) along.
+		local typing = ns.Input:IsTyping()
 		if self:IsAvailable(conv) then
-			ns.Input:Route(conv, previous)
-		elseif conv.chatType or conv.readOnly then
+			if typing then
+				ns.Input:Route(conv, previous)
+			else
+				ns.Input:PointQuietly(conv)
+			end
+		elseif typing and (conv.chatType or conv.readOnly) then
 			ns:Print("You can't send to %s right now. Its history stays here to read.", conv.label)
 		end
 	end

@@ -248,7 +248,7 @@ local function Boot(savedDB, opts)
 		ChatFrameUtil = {
 			GetActiveWindow = function() return nil end,
 			ChooseBoxForSend = function() return editBox end,
-			OpenChat = function() end,
+			OpenChat = function() S.opened = (S.opened or 0) + 1 end,
 			GetChatCategory = function(t) return t end,
 		},
 		MenuUtil = { CreateContextMenu = function() end },
@@ -523,6 +523,24 @@ section("Scrolling the list", function()
 	wheel(Shell.sidebar, 1)
 	check("and back up, no further than the top", Shell.listOffset == 0)
 	Shell.sidebar._h = 0
+end)
+
+section("Clicking a row", function()
+	local S = first
+	local C = S.ns.Conversations
+	S.opened = 0
+	C:Select("nearby", false)
+	check("clicking a row doesn't open the chat box", S.opened == 0)
+	check("it points the box there for the next Enter", S.editBox:GetChatType() == "SAY")
+	S.editBox.HasFocus = function() return true end
+	local whisper
+	for _, c in ipairs(C:Sorted()) do
+		if c.chatType == "WHISPER" then whisper = c end
+	end
+	C:Select(whisper.key, false)
+	check("while typing, a click moves the open box along", S.opened == 1 and S.editBox:GetChatType() == "WHISPER")
+	S.editBox.HasFocus = nil
+	C:Select("nearby", false)
 end)
 
 section("Game replies count as unread", function()
