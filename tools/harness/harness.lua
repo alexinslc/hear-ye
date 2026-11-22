@@ -522,6 +522,10 @@ section("Scrolling the list", function()
 	wheel(Shell.sidebar, 1)
 	wheel(Shell.sidebar, 1)
 	check("and back up, no further than the top", Shell.listOffset == 0)
+	wheel(Shell.sidebar, -1)
+	Shell.sidebar._h = 400 -- the window grows back
+	Shell:Refresh()
+	check("a list that fits again scrolls back to the top", Shell.listOffset == 0, Shell.listOffset)
 	Shell.sidebar._h = 0
 end)
 

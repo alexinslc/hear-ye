@@ -1075,8 +1075,9 @@ function Shell:Refresh()
 	if self.moreText then
 		self.moreText:SetShown(full)
 	end
-	-- Scrolled past everything (rows went away): step back.
-	if (self.listOffset or 0) > 0 and rowCount == 0 and sectionCount == 0 then
+	-- Scrolled further than needed (the window grew, or rows went away):
+	-- scroll back up while there's room for another row.
+	if (self.listOffset or 0) > 0 and not full and bottom + y >= ROW_HEIGHT then
 		self.listOffset = self.listOffset - 1
 		return self:Refresh()
 	end
