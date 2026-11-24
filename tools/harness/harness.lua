@@ -194,9 +194,10 @@ local function Boot(savedDB, opts)
 	end
 
 	local hookedSecure = {}
+	local stubs
 	local function hooksecurefunc(t, name, fn)
 		if type(t) == "string" then
-			t, name, fn = nil, t, name
+			t, name, fn = type(stubs[t]) == "function" and stubs or nil, t, name
 		end
 		if t then
 			local old = t[name]
@@ -210,7 +211,7 @@ local function Boot(savedDB, opts)
 	end
 
 	local guid = "Player-1-00000001"
-	local stubs = {
+	stubs = {
 		CreateFrame = CreateFrame,
 		hooksecurefunc = hooksecurefunc,
 		UIParent = newObject(nil),
@@ -900,6 +901,68 @@ section("Leaving a party leaves no Earlier row", function()
 	local O = Boot(old)
 	O.login()
 	check("an old Earlier party row is dropped", O.ns.Conversations:Get("party@2") == nil)
+end)
+
+section("Message sounds", function()
+	local played = {}
+	local S = Boot(nil, { stubs = {
+		SOUNDKIT = { TELL_MESSAGE = 1, MAP_PING = 2 },
+		PlaySound = function(kit) played[#played + 1] = kit end,
+	} })
+	S.inGroup, S.inGuild, S.guildName = true, true, "Testers"
+	S.login()
+	S.runTimers()
+	local ns = S.ns
+	local other = { guid = "Player-1-00000002" }
+	local who = "Brana Tester-Forever"
+	ns.Conversations:Select("nearby", false)
+	local function heard(event)
+		played = {}
+		S.now = S.now + 10
+		S.chatEvent(event, "hello", who, other)
+		S.runTimers()
+		return #played
+	end
+	check("no sound until one is picked", heard("CHAT_MSG_PARTY") == 0)
+	ns.db.groupSound = "ping"
+	check("whispers sound", heard("CHAT_MSG_WHISPER") == 1)
+	check("party sounds", heard("CHAT_MSG_PARTY") == 1)
+	check("guild sounds", heard("CHAT_MSG_GUILD") == 1)
+	check("Say doesn't, unless chosen", heard("CHAT_MSG_SAY") == 0)
+	ns.db.soundFor.guild = false
+	check("guild can be turned off", heard("CHAT_MSG_GUILD") == 0)
+	check("officer chat goes with guild", heard("CHAT_MSG_OFFICER") == 0)
+	check("party still sounds with guild off", heard("CHAT_MSG_PARTY") == 1)
+	ns.db.soundFor.guild = true
+	ns.db.soundFor.say = true
+	check("the open conversation is quiet", heard("CHAT_MSG_SAY") == 0)
+	ns.Conversations:Select("party", false)
+	check("Say sounds when chosen", heard("CHAT_MSG_SAY") == 1)
+
+	ns.Conversations:Select("nearby", false)
+	played = {}
+	S.now = S.now + 10
+	S.chatEvent("CHAT_MSG_GUILD", "one", who, other)
+	S.chatEvent("CHAT_MSG_GUILD", "two", who, other)
+	check("a burst sounds once", #played == 1, #played)
+	S.chatEvent("CHAT_MSG_PARTY", "help", who, other)
+	check("a busy guild doesn't use up the party's sound", #played == 2, #played)
+
+	-- The game plays its own whisper sound, before or after Hear Ye.
+	played = {}
+	S.now = S.now + 10
+	S.chatEvent("CHAT_MSG_WHISPER", "hi", who, other)
+	S.env.PlaySound(1)
+	S.runTimers()
+	check("the game's whisper sound isn't doubled", #played == 1 and played[1] == 1, #played)
+	check("the next whisper sounds", heard("CHAT_MSG_WHISPER") == 1)
+
+	local saved = S.logout()
+	check("the choices are saved", saved.soundFor.say == true)
+	saved.soundFor = { guild = "loud", party = false }
+	local R = Boot(saved)
+	R.login()
+	check("a bad choice falls back", R.ns.db.soundFor.guild == true and R.ns.db.soundFor.party == false and R.ns.db.soundFor.say == false)
 end)
 
 section("Old and damaged saved files", function()

@@ -663,7 +663,7 @@ function Shell:Create()
 	for _, holder in ipairs({ self.paneHeader, self.pane, self.hintFrame }) do
 		textHolders[#textHolders + 1] = holder
 	end
-	lastActivity = GetTime()
+	self:NoteActivity()
 end
 
 -- Two kinds of chrome. Backgrounds (the window's fill and the marble panels)

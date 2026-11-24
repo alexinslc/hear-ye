@@ -23,11 +23,14 @@ local defaults = {
 	opacity = 0.5,
 	fadeBackground = true, -- hide the background when the mouse is away, like the default chat
 	fadeText = true, -- fade the open conversation when it's quiet, like the default chat
-	groupSound = "none", -- a sound for new party, raid and guild messages
+	groupSound = "none", -- the sound for new messages; soundFor says which ones
 	sidebarHidden = false, -- the conversation list, as a compact strip
 	sized = false, -- true once you've resized the window yourself
 	hideRealNames = true, -- Battle.net friends by BattleTag, not real name
 }
+
+-- Which messages play the sound.
+local SOUND_DEFAULTS = { whisper = true, party = true, guild = true, say = false, channel = false }
 
 -- Saved history is just enough to carry over a reload or a quick relog:
 -- the last 50 lines of each of your own conversations, for one day.
@@ -119,6 +122,12 @@ local function ApplyDefaults(db)
 	db.characters = type(db.characters) == "table" and db.characters or {}
 	-- Sidebar sections you've closed, by key ("chat", "whispers").
 	db.collapsed = type(db.collapsed) == "table" and db.collapsed or {}
+	db.soundFor = type(db.soundFor) == "table" and db.soundFor or {}
+	for key, value in pairs(SOUND_DEFAULTS) do
+		if type(db.soundFor[key]) ~= "boolean" then
+			db.soundFor[key] = value
+		end
+	end
 	db.history = type(db.history) == "table" and db.history or {}
 	for key, value in pairs(HISTORY_DEFAULTS) do
 		db.history[key] = Clamp(db.history[key], 1, value * 4, value)

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.4
+
+- Choose which messages play a sound: whispers, party and raid, guild, Say, channels.
+- Whispers now use the sound you pick. Before, they only had the game's own sound, which plays after five minutes without a whisper.
+- A busy guild no longer uses up the sound for a party message.
+
 ## 0.4.3
 
 - Whisper rows show a small x on hover to close a conversation you're done with.

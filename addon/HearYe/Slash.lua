@@ -220,7 +220,7 @@ local function MakeSoundMenu(parent)
 	end
 	local function choose(choice)
 		ns.db.groupSound = choice.key
-		ns.Messages:PlayGroupSound(true)
+		ns.Messages:PreviewSound()
 	end
 	local ok, dropdown = pcall(CreateFrame, "DropdownButton", nil, parent, "WowStyle1DropdownTemplate")
 	if ok and dropdown and dropdown.SetupMenu then
@@ -258,9 +258,42 @@ local function MakeSoundMenu(parent)
 	return { frame = button, refresh = refresh }
 end
 
+-- Which messages play the sound, three to a row.
+local SOUND_KINDS = {
+	{ key = "whisper", label = "Whispers" },
+	{ key = "party", label = "Party and raid" },
+	{ key = "guild", label = "Guild" },
+	{ key = "say", label = "Say" },
+	{ key = "channel", label = "Channels" },
+}
+
+local function AddSoundChecks(parent, anchor)
+	local area = CreateFrame("Frame", nil, parent)
+	area:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", -2, -6)
+	area:SetSize(372, 52)
+	for i, kind in ipairs(SOUND_KINDS) do
+		local column, row = (i - 1) % 3, math.floor((i - 1) / 3)
+		local check = CreateFrame("CheckButton", nil, area, "UICheckButtonTemplate")
+		check:SetSize(26, 26)
+		check:SetPoint("TOPLEFT", column * 128, -row * 26)
+		local text = check:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+		text:SetPoint("LEFT", check, "RIGHT", 2, 1)
+		text:SetText(kind.label)
+		check:SetScript("OnClick", function(self)
+			ns.db.soundFor[kind.key] = self:GetChecked() and true or false
+			if SOUNDKIT then
+				PlaySound(self:GetChecked() and SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON or SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_OFF)
+			end
+		end)
+		check.get = function() return ns.db.soundFor[kind.key] end
+		checks[#checks + 1] = check
+	end
+	return area
+end
+
 local function Build()
-	window = NewWindow("HearYeSetupFrame", "Hear Ye", 420, 586)
-	window:SetPoint("CENTER", 0, 60)
+	window = NewWindow("HearYeSetupFrame", "Hear Ye", 420, 646)
+	window:SetPoint("CENTER", 0, 30)
 	window:SetFrameStrata("DIALOG")
 	window:SetToplevel(true)
 	window:EnableMouse(true)
@@ -351,12 +384,12 @@ local function Build()
 
 	local soundLabel = window:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
 	soundLabel:SetPoint("TOPLEFT", quietCheck, "BOTTOMLEFT", 4, -10)
-	soundLabel:SetText("Sound for party, raid and guild messages")
+	soundLabel:SetText("Sound for new messages")
 	local soundNote = window:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
 	soundNote:SetPoint("TOPLEFT", soundLabel, "BOTTOMLEFT", 0, -3)
 	soundNote:SetWidth(360)
 	soundNote:SetJustifyH("LEFT")
-	soundNote:SetText("Whispers already use the game's own whisper sound.")
+	soundNote:SetText("Plays when you aren't already reading that conversation.")
 	local soundMenu = MakeSoundMenu(window)
 	soundMenu.frame:SetPoint("TOPLEFT", soundNote, "BOTTOMLEFT", -2, -8)
 	local preview = CreateFrame("Button", nil, window, "UIPanelButtonTemplate")
@@ -364,11 +397,12 @@ local function Build()
 	preview:SetPoint("LEFT", soundMenu.frame, "RIGHT", 8, 0)
 	preview:SetText("Play")
 	preview:SetScript("OnClick", function()
-		ns.Messages:PlayGroupSound(true)
+		ns.Messages:PreviewSound()
 	end)
 	window.refreshers = { soundMenu.refresh }
+	local soundChecks = AddSoundChecks(window, soundMenu.frame)
 
-	AddCheck(window, soundMenu.frame, "Hide friends' real names",
+	AddCheck(window, soundChecks, "Hide friends' real names",
 		"Shows Battle.net friends by the character they're playing or their BattleTag, and leaves out notices that only come with real names.",
 		function() return ns.db.hideRealNames end,
 		function(on)

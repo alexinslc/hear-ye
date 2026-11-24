@@ -183,13 +183,15 @@ local function UpdateNewIndicator()
 	end
 end
 
-local SOUND_GROUPS = { party = true, raid = true, instance = true, guild = true, officer = true }
+local SOUND_OF_GROUP = { nearby = "say", party = "party", raid = "party", instance = "party", guild = "guild", officer = "guild" }
+local SOUND_OF_TYPE = { WHISPER = "whisper", BN_WHISPER = "whisper", CHANNEL = "channel" }
 
 local function Deliver(conv, line, r, g, b, countsAsUnread)
-	if countsAsUnread and SOUND_GROUPS[conv.group or ""] and not conv.readOnly then
+	local kind = SOUND_OF_GROUP[conv.group or ""] or SOUND_OF_TYPE[conv.chatType or ""]
+	if countsAsUnread and kind and ns.db.soundFor[kind] then
 		local looking = conv.key == ns.Conversations.selectedKey and smf:AtBottom() and ns.Shell:IsActive()
 		if not looking then
-			Messages:PlayGroupSound(false)
+			Messages:PlayMessageSound(conv, kind)
 		end
 	end
 	if conv.key == ns.Conversations.selectedKey and #conv.lines == 1 then
@@ -478,21 +480,57 @@ function Messages:SoundChoices()
 	return list
 end
 
-local lastSound = 0
-
--- preview: play now, even if the setting is off, for the Play button.
-function Messages:PlayGroupSound(preview)
-	local key = ns.db.groupSound
+local function ChosenKit()
 	for _, choice in ipairs(SOUND_CHOICES) do
-		if choice.key == key and choice.kit and SOUNDKIT and SOUNDKIT[choice.kit] then
-			local now = GetTime()
-			if preview or now - lastSound > 3 then
-				lastSound = now
-				PlaySound(SOUNDKIT[choice.kit], "Master")
-			end
-			return
+		if choice.key == ns.db.groupSound then
+			return choice.kit and SOUNDKIT and SOUNDKIT[choice.kit]
 		end
 	end
+end
+
+-- For the Play button, and when you pick a sound.
+function Messages:PreviewSound()
+	local kit = ChosenKit()
+	if kit then
+		PlaySound(kit, "Master")
+	end
+end
+
+-- The game plays its own whisper sound only after five minutes without a
+-- whisper. When it does, Hear Ye stays quiet for that message.
+local gameWhisperSound
+local function HookWhisperSound()
+	local kit = SOUNDKIT and SOUNDKIT.TELL_MESSAGE
+	if kit then
+		hooksecurefunc("PlaySound", function(played)
+			if ns.CanAccess(played) and played == kit then
+				gameWhisperSound = GetTime()
+			end
+		end)
+	end
+end
+
+local SOUND_GAP = 3
+
+-- At most one sound every few seconds from each conversation, so a busy
+-- guild can't use up the sound for a party message.
+function Messages:PlayMessageSound(conv, kind)
+	local kit = ChosenKit()
+	local now = GetTime()
+	if not kit or now - (conv.lastSound or -SOUND_GAP) < SOUND_GAP then
+		return
+	end
+	conv.lastSound = now
+	if kind ~= "whisper" then
+		PlaySound(kit, "Master")
+		return
+	end
+	-- Wait for the game to handle the same whisper; it may be after Hear Ye.
+	C_Timer.After(0, function()
+		if gameWhisperSound == nil or gameWhisperSound < now then
+			PlaySound(kit, "Master")
+		end
+	end)
 end
 
 ---------------------------------------------------------------------------
@@ -525,6 +563,7 @@ end
 
 function Messages:Init()
 	playerGUID = UnitGUID("player")
+	HookWhisperSound()
 
 	smf = CreateFrame("ScrollingMessageFrame", "HearYeMessageFrame", ns.Shell.pane)
 	smf:SetAllPoints()
