@@ -8,6 +8,8 @@ A compact chat window for World of Warcraft: Forever. It keeps party, nearby, gu
 
 Get it from CurseForge, or download the zip from the latest GitHub release and unzip it into `World of Warcraft/_forever_/Interface/AddOns`.
 
+[Join us on Discord](https://discord.gg/GyrhmXnQTW) to ask questions, report bugs and suggest ideas.
+
 ## Install for development
 
 The game reads the project folder directly through a link.
