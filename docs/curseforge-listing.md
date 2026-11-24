@@ -19,7 +19,7 @@ Before 1.0, drop the early-testing line. The five screenshots in [docs/screensho
 
 ## Description
 
-![Hear Ye](https://raw.githubusercontent.com/alexinslc/hear-ye/main/art/banner.png)
+![Hear Ye](https://raw.githubusercontent.com/death-walrus-studios/hear-ye/main/art/banner.png)
 
 **Hear ye, hear ye!**
 
@@ -49,7 +49,7 @@ The first time you log in, a short setup asks whether Hear Ye should replace the
 
 ## Good to know
 
-During boss encounters and some combat, the game hides chat details from addons. Hear Ye then shows the game's own line for the message, in its row when it can tell which one, or in the Game row. Hear Ye is free and isn't affiliated with Blizzard. Bugs or ideas: leave a comment, or open an issue on [GitHub](https://github.com/alexinslc/hear-ye).
+During boss encounters and some combat, the game hides chat details from addons. Hear Ye then shows the game's own line for the message, in its row when it can tell which one, or in the Game row. Hear Ye is free and isn't affiliated with Blizzard. Bugs or ideas: leave a comment, or open an issue on [GitHub](https://github.com/death-walrus-studios/hear-ye).
 
 ## Commands
 
