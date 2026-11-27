@@ -577,6 +577,8 @@ function Conversations:Select(key, fromNative)
 		ns:Log("selected %s (%s)", key, fromNative and "native command" or "sidebar")
 	end
 	if not fromNative then
+		-- Choosing a row yourself settles where you are.
+		ns.Input:CancelReturn()
 		-- Clicking a row switches what you're reading, like a chat tab: it
 		-- doesn't take the keyboard, so you keep walking. The chat box is
 		-- pointed there for when you press Enter. Only while you're already

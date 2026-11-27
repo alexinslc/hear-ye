@@ -80,9 +80,123 @@ local FLAT = {
 	CHANNEL = true, WHISPER = true, BN_WHISPER = true,
 }
 
+---------------------------------------------------------------------------
+-- Copying: links and whole lines
+---------------------------------------------------------------------------
+
+local URL_LINK, LINE_LINK = "hearyeurl:", "hearyeline:"
+
+-- Web addresses and Discord invites someone typed.
+local function LooksLikeURL(word)
+	local lower = word:lower()
+	return lower:find("^https?://%S") or lower:find("^www%.%w") or lower:find("^discord%.gg/%w") or lower:find("^discord%.com/invite/%w")
+end
+
+local function LinkWord(word)
+	-- A sentence's last full stop or bracket isn't part of the address.
+	local url, trailing = word:match("^(.-)([%.,!%?;:%)%]'\"]*)$")
+	if not LooksLikeURL(url) then
+		return nil
+	end
+	return "|H" .. URL_LINK .. url .. "|h|cff66bbff" .. url .. "|r|h" .. trailing
+end
+
+-- Only the plain text between the game's own links is looked at.
+local function LinkURLs(text)
+	local out, pos = {}, 1
+	while true do
+		local s, e = text:find("|H.-|h.-|h", pos)
+		local gap = text:sub(pos, (s or 0) - 1)
+		out[#out + 1] = (gap:gsub("[^%s|]+", LinkWord))
+		if not s then
+			break
+		end
+		out[#out + 1] = text:sub(s, e)
+		pos = e + 1
+	end
+	return table.concat(out)
+end
+Messages.LinkURLs = LinkURLs
+
+-- A line as you'd type it: no colours, textures or link codes.
+local function PlainText(text)
+	text = text:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|cn[^:]*:", ""):gsub("|r", "")
+	text = text:gsub("|H.-|h(.-)|h", "%1"):gsub("|T.-|t", ""):gsub("|A.-|a", ""):gsub("||", "|")
+	return (text:gsub("^%s+", ""))
+end
+Messages.PlainText = PlainText
+
+local copyBox
+
+local function ShowCopyBox(text, title)
+	if not copyBox then
+		copyBox = CreateFrame("Frame", "HearYeCopyFrame", UIParent, "BackdropTemplate")
+		ns.ApplyBackdrop(copyBox, 0.96)
+		copyBox:SetSize(420, 74)
+		copyBox:SetFrameStrata("DIALOG")
+		copyBox:EnableMouse(true)
+		copyBox.title = copyBox:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+		copyBox.title:SetPoint("TOPLEFT", 14, -12)
+		local note = copyBox:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+		note:SetPoint("TOPRIGHT", -14, -14)
+		note:SetText("Ctrl+C to copy, Escape to close")
+		local edit = CreateFrame("EditBox", nil, copyBox, "InputBoxTemplate")
+		edit:SetPoint("BOTTOMLEFT", 20, 12)
+		edit:SetPoint("BOTTOMRIGHT", -14, 12)
+		edit:SetHeight(24)
+		edit:SetAutoFocus(false)
+		edit:SetScript("OnEscapePressed", function() copyBox:Hide() end)
+		edit:SetScript("OnEnterPressed", function() copyBox:Hide() end)
+		-- Read only: typing puts the text back, still selected.
+		edit:SetScript("OnTextChanged", function(self, userInput)
+			if userInput then
+				self:SetText(copyBox.text)
+				self:HighlightText()
+			end
+		end)
+		edit:SetScript("OnEditFocusLost", function() copyBox:Hide() end)
+		copyBox.edit = edit
+		copyBox:Hide()
+	end
+	copyBox:ClearAllPoints()
+	copyBox:SetPoint("BOTTOM", ns.Shell.pane, "BOTTOM", 0, 24)
+	copyBox.text = text
+	copyBox.title:SetText(title)
+	copyBox:Show()
+	copyBox.edit:SetText(text)
+	copyBox.edit:SetCursorPosition(0)
+	copyBox.edit:SetFocus()
+	copyBox.edit:HighlightText()
+end
+Messages.ShowCopyBox = ShowCopyBox
+
+local lineCounter = 0
+
+-- Hear Ye's own links: an address to copy, or a timestamp that copies its
+-- line. Returns true when the click was one of them.
+local function OnOwnLink(link)
+	if link:sub(1, #URL_LINK) == URL_LINK then
+		ShowCopyBox(link:sub(#URL_LINK + 1), "Copy link")
+		return true
+	elseif link:sub(1, #LINE_LINK) == LINE_LINK then
+		local needle = "|H" .. link .. "|h"
+		local conv = ns.Conversations:GetSelected()
+		for i = #(conv and conv.lines or {}), 1, -1 do
+			local text = conv.lines[i].text
+			if type(text) == "string" and text:find(needle, 1, true) then
+				ShowCopyBox(PlainText(text), "Copy message")
+				return true
+			end
+		end
+		return true
+	end
+	return false
+end
+Messages.OnOwnLink = OnOwnLink
+
 -- The game's own timestamp format when you've chosen one in its settings;
 -- otherwise a short grey time, so every row says when it was said.
-local function Timestamp()
+local function StampText()
 	local stampFormat = ChatFrameUtil and ChatFrameUtil.GetTimestampFormat and ChatFrameUtil.GetTimestampFormat()
 	if stampFormat and TimeUtil and TimeUtil.BetterDate then
 		return TimeUtil.BetterDate(stampFormat, time())
@@ -93,6 +207,14 @@ local function Timestamp()
 		stamp = stamp:gsub("^0", "")
 	end
 	return "|cff8a8a8a" .. stamp .. "|r  "
+end
+
+-- Clicking the time copies the line.
+local function Timestamp()
+	lineCounter = lineCounter + 1
+	local stamp = StampText()
+	local spaces = stamp:match("%s*$")
+	return "|H" .. LINE_LINK .. time() .. "." .. lineCounter .. "|h" .. stamp:sub(1, #stamp - #spaces) .. "|h" .. spaces
 end
 
 local function FormatLine(msgType, text, sender, language, lineID, guid, bnetID, chatGroup, chatTarget, iconReplacement)
@@ -107,6 +229,8 @@ local function FormatLine(msgType, text, sender, language, lineID, guid, bnetID,
 		end
 		text = SafeCall(C_ChatInfo.ReplaceIconAndGroupExpressions, text, iconReplacement, noGroupExpansion) or text
 	end
+
+	text = LinkURLs(text)
 
 	local isEmote = msgType == "EMOTE" or msgType == "TEXT_EMOTE"
 	-- Your own lines say "You", except in emotes, which read as sentences.
@@ -592,6 +716,9 @@ function Messages:Init()
 	-- by the frame it came from, and the default chat may be hidden while
 	-- Hear Ye replaces it, which would leave the menu with nowhere to show.
 	smf:SetScript("OnHyperlinkClick", function(self, link, text, button)
+		if type(link) == "string" and OnOwnLink(link) then
+			return
+		end
 		-- The same event the default chat sends, so addons that act on
 		-- chat links (tooltips, link helpers) work here too.
 		if EventRegistry then
@@ -604,12 +731,19 @@ function Messages:Init()
 			SetItemRef(link, text, button, DEFAULT_CHAT_FRAME)
 		end
 	end)
-	smf:SetScript("OnHyperlinkEnter", function(self, ...)
+	smf:SetScript("OnHyperlinkEnter", function(self, link, ...)
+		if type(link) == "string" and (link:sub(1, #URL_LINK) == URL_LINK or link:sub(1, #LINE_LINK) == LINE_LINK) then
+			GameTooltip:SetOwner(self, "ANCHOR_CURSOR")
+			GameTooltip:SetText(link:sub(1, #URL_LINK) == URL_LINK and "Click to copy this link" or "Click to copy this message", 1, 1, 1)
+			GameTooltip:Show()
+			return
+		end
 		if EventRegistry then
-			EventRegistry:TriggerEvent("ChatFrame.OnHyperlinkEnter", self, ...)
+			EventRegistry:TriggerEvent("ChatFrame.OnHyperlinkEnter", self, link, ...)
 		end
 	end)
 	smf:SetScript("OnHyperlinkLeave", function(self)
+		GameTooltip:Hide()
 		if EventRegistry then
 			EventRegistry:TriggerEvent("ChatFrame.OnHyperlinkLeave", self)
 		end

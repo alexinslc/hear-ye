@@ -292,8 +292,8 @@ local function AddSoundChecks(parent, anchor)
 end
 
 local function Build()
-	window = NewWindow("HearYeSetupFrame", "Hear Ye", 420, 646)
-	window:SetPoint("CENTER", 0, 30)
+	window = NewWindow("HearYeSetupFrame", "Hear Ye", 420, 694)
+	window:SetPoint("CENTER", 0, 10)
 	window:SetFrameStrata("DIALOG")
 	window:SetToplevel(true)
 	window:EnableMouse(true)
@@ -321,6 +321,11 @@ local function Build()
 		"Drag the title bar to move it, or the bottom-right corner to resize it, while it's unlocked.",
 		function() return ns.db.locked end,
 		function(on) ns.Shell:SetLocked(on) end)
+
+	last = AddCheck(window, last, "Go back after replying to a whisper",
+		"After /r or the reply key, you return to the conversation you were reading.",
+		function() return ns.db.returnAfterReply end,
+		function(on) ns.db.returnAfterReply = on and true or false end)
 
 	local rule = window:CreateTexture(nil, "ARTWORK")
 	rule:SetColorTexture(0.72, 0.55, 0.32, 0.35)

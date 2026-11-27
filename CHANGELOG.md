@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.5
+
+- After replying to a whisper with /r or the reply key, you go back to the conversation you were reading once it's sent. Turn this off in Settings.
+- Web addresses and Discord invites in chat are clickable. Click one to copy it.
+- Click a message's time to copy the message.
+
 ## 0.4.4
 
 - Choose which messages play a sound: whispers, party and raid, guild, Say, channels.

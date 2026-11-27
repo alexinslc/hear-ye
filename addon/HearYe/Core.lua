@@ -27,6 +27,7 @@ local defaults = {
 	sidebarHidden = false, -- the conversation list, as a compact strip
 	sized = false, -- true once you've resized the window yourself
 	hideRealNames = true, -- Battle.net friends by BattleTag, not real name
+	returnAfterReply = true, -- after /r, the next Enter goes back to the row you were on
 }
 
 -- Which messages play the sound.

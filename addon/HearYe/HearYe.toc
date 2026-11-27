@@ -1,7 +1,7 @@
 ## Interface: 16001
 ## Title: Hear Ye
 ## Notes: A compact chat window that keeps your party, nearby, guild and whisper conversations easy to follow.
-## Version: 0.4.4
+## Version: 0.4.5
 ## IconTexture: Interface\AddOns\HearYe\Textures\Icon
 ## SavedVariables: HearYeDB
 

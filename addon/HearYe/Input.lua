@@ -41,6 +41,10 @@ end
 -- typing counts, so reading the Game row and pressing Enter stays put.
 local baselineKey
 
+-- After /r or the reply key, where to go back to once the reply is sent.
+local returnKey
+local WHISPERS = { WHISPER = true, BN_WHISPER = true }
+
 -- The game titles a Battle.net whisper with the friend's real name ("Tell
 -- <name>:"). While real names are hidden, retitle it with the name Hear Ye
 -- shows (their character or BattleTag), and redo the text spacing the same
@@ -96,8 +100,17 @@ local function OnHeaderUpdated(editBox)
 	if not key or key == ns.Conversations.selectedKey then
 		return
 	end
-	if ns.Conversations:Get(key) then
-		ns.Conversations:Select(key, true)
+	local C = ns.Conversations
+	local conv = C:Get(key)
+	-- A quick reply to a whisper goes back to what you were reading. Only
+	-- for a whisper row you already have; starting a new one opens it.
+	if conv and WHISPERS[conv.chatType] and ns.db.returnAfterReply then
+		returnKey = returnKey or C.selectedKey
+	elseif not (conv and WHISPERS[conv.chatType]) then
+		returnKey = nil
+	end
+	if conv then
+		C:Select(key, true)
 	else
 		ns:Log("native destination %s has no row yet", key)
 	end
@@ -222,6 +235,27 @@ function Input:PointAt(editBox, conv)
 	editBox:UpdateHeader()
 end
 
+function Input:CancelReturn()
+	returnKey = nil
+end
+
+-- The box closed after a quick reply: sent, or cancelled with Escape. Text
+-- still in it means you only clicked away, so wait.
+function Input:FinishReply(editBox)
+	if not returnKey or editBox ~= adopted or (editBox:GetText() or "") ~= "" then
+		return
+	end
+	local C = ns.Conversations
+	local conv = C:Get(returnKey)
+	returnKey = nil
+	if not conv or not C:IsAvailable(conv) or C.selectedKey == conv.key then
+		return
+	end
+	C:Select(conv.key, true)
+	self:PointAt(editBox, conv)
+	ns:Log("back to %s after a whisper reply", conv.key)
+end
+
 function Input:IsTyping()
 	return adopted ~= nil and adopted:HasFocus() and true or false
 end
@@ -304,11 +338,13 @@ function Input:Init()
 			conv.draft = nil
 		end
 	end, Input)
-	EventRegistry:RegisterCallback("ChatFrame.OnEditBoxFocusLost", function()
+	EventRegistry:RegisterCallback("ChatFrame.OnEditBoxFocusLost", function(_, editBox)
 		ns.Shell:SetTyping(false)
+		Input:FinishReply(editBox)
 	end, Input)
-	EventRegistry:RegisterCallback("ChatFrame.OnEditBoxHide", function()
+	EventRegistry:RegisterCallback("ChatFrame.OnEditBoxHide", function(_, editBox)
 		ns.Shell:SetTyping(false)
+		Input:FinishReply(editBox)
 	end, Input)
 	self:AdoptCurrent()
 	-- After a /reload or login the game resets the box to Say. Point it back

@@ -726,6 +726,78 @@ section("Clicking links", function()
 	check("the pane offers the chat box to the menu", pane.editBox ~= nil)
 end)
 
+section("Going back after a whisper reply", function()
+	local S = first
+	local C, Input = S.ns.Conversations, S.ns.Input
+	local lost = S.callbacks["ChatFrame.OnEditBoxFocusLost"]
+	local whisper
+	for _, c in ipairs(C:Sorted()) do
+		if c.chatType == "WHISPER" then whisper = c end
+	end
+	local function reply(text)
+		C:Select("nearby", false)
+		S.editBox.HasFocus = function() return true end
+		S.editBox:SetText("")
+		S.callbacks["ChatFrame.OnEditBoxFocusGained"](Input, S.editBox)
+		S.editBox:SetChatType("WHISPER")
+		S.editBox:SetTellTarget(whisper.tellTarget)
+		S.editBox:UpdateHeader()
+		local moved = C.selectedKey == whisper.key
+		S.editBox:SetText(text)
+		S.editBox.HasFocus = nil
+		lost(Input, S.editBox)
+		return moved
+	end
+	check("/r opens the whisper row", reply(""))
+	check("after sending, you're back in Say", C.selectedKey == "nearby", C.selectedKey)
+	check("and the next Enter goes to Say", S.editBox:GetChatType() == "SAY" and S.editBox._sticky == "SAY")
+	reply("half a thought")
+	check("clicking away mid-reply stays on the whisper", C.selectedKey == whisper.key)
+	S.editBox:SetText("")
+	C:Select(whisper.key, false)
+	lost(Input, S.editBox)
+	check("choosing the whisper row yourself keeps it", C.selectedKey == whisper.key)
+	S.ns.db.returnAfterReply = false
+	reply("")
+	check("with the setting off, the whisper row stays", C.selectedKey == whisper.key)
+	S.ns.db.returnAfterReply = true
+	S.editBox:SetChatType("SAY")
+	C:Select("nearby", false)
+end)
+
+section("Copying links and messages", function()
+	local S = first
+	local M = S.ns.Messages
+	local linked = M.LinkURLs("join https://discord.gg/abc123, or www.example.com.")
+	check("an address becomes a link", linked:find("|Hhearyeurl:https://discord.gg/abc123|h", 1, true) ~= nil, linked)
+	check("a trailing comma stays outside it", linked:find("abc123|r|h, or", 1, true) ~= nil, linked)
+	check("www addresses too, without the full stop", linked:find("|Hhearyeurl:www.example.com|h", 1, true) ~= nil, linked)
+	local item = "|cff1eff00|Hitem:2589::::::::5:::::::|h[Linen Cloth]|h|r"
+	check("the game's links are left alone", M.LinkURLs("wts " .. item) == "wts " .. item)
+	check("plain words are left alone", M.LinkURLs("lf healer for sm") == "lf healer for sm")
+
+	S.ns.Conversations:Select("nearby", false)
+	S.chatEvent("CHAT_MSG_SAY", "guild site: https://example.org/apply", "Brana Tester-Forever", { guid = "Player-1-00000002" })
+	local conv = S.ns.Conversations:Get("nearby")
+	local line = conv.lines[#conv.lines].text
+	check("an address someone says is clickable", line:find("|Hhearyeurl:https://example.org/apply|h", 1, true) ~= nil, line)
+	local pane = M.frame
+	local click = pane:GetScript("OnHyperlinkClick")
+	S.itemRef = nil
+	click(pane, "hearyeurl:https://example.org/apply", "https://example.org/apply", "LeftButton")
+	local box = S.env.HearYeCopyFrame
+	check("clicking it opens the copy box", box and box:IsShown() and box.edit:GetText() == "https://example.org/apply")
+	check("and doesn't reach the game's link handler", S.itemRef == nil)
+	local id = line:match("|H(hearyeline:[^|]+)|h")
+	check("each message's time is a link", id ~= nil, line)
+	click(pane, id, "", "LeftButton")
+	check("clicking the time copies the message as plain text", box.edit:GetText():find("]: guild site: https://example.org/apply", 1, true) ~= nil, box.edit:GetText())
+	check("without colour or link codes", not box.edit:GetText():find("|", 1, true), box.edit:GetText())
+	box.edit:GetScript("OnEscapePressed")(box.edit)
+	check("Escape closes it", not box:IsShown())
+	S.ns:Print("hello")
+end)
+
 section("Saving on logout", function()
 	local db = first.logout()
 	local key = "Player-1-00000001"
